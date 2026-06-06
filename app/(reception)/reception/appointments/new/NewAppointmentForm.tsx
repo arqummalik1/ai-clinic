@@ -44,7 +44,7 @@ export function NewAppointmentForm() {
     phone: "",
     email: "",
     age: "",
-    gender: "" as "" | "Male" | "Female" | "Other",
+    gender: "" as "" | "male" | "female" | "other",
     address: "",
   });
 
@@ -311,12 +311,12 @@ export function NewAppointmentForm() {
                 <Label>Gender</Label>
                 <Select
                   value={newPatient.gender}
-                  onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value as "" | "Male" | "Female" | "Other" })}
+                  onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value as "" | "male" | "female" | "other" })}
                 >
                   <option value="">Select…</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
                 </Select>
               </div>
             </div>
