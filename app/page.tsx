@@ -1,12 +1,14 @@
 import Link from "next/link";
 import {
   Mic, FileText, Users, Building2, CalendarClock, BellRing, ShieldCheck,
-  BarChart3, ArrowRight, Check, Minus, Waves, ReceiptText, Languages, ClipboardList,
+  BarChart3, ArrowRight, Check, Minus, Waves, ReceiptText, ClipboardList, IndianRupee,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { StructuredData } from "@/components/marketing/structured-data";
+import { HeroDemo } from "@/components/marketing/hero-demo";
+import { Reveal } from "@/components/marketing/reveal";
 
 const faqs = [
   {
@@ -39,49 +41,58 @@ const features = [
   {
     icon: Mic,
     title: "Voice prescriptions",
-    desc: "Speak naturally during the consult. Medicines, dosages, lab orders, and advice land as a clean, structured draft you simply confirm.",
+    desc: "Speak naturally — medicines, dosages, and advice land as a clean draft.",
     accent: true,
+    motif: "voice",
   },
   {
     icon: ClipboardList,
     title: "Spoken visit summaries",
-    desc: "Dictate the diagnosis and what the patient came in for. MediSync writes it up so the record is complete without a keyboard.",
+    desc: "Dictate the diagnosis; the record writes itself. No keyboard.",
     accent: true,
+    motif: "summary",
   },
   {
     icon: CalendarClock,
     title: "Live appointment queue",
-    desc: "Reception adds patients to a token queue; doctors see it update in real time across every screen and call patients in with one tap.",
+    desc: "A token queue reception and doctors share in real time.",
+    motif: "queue",
   },
   {
     icon: ReceiptText,
     title: "Front-desk billing",
-    desc: "Record fees, mark payments, and hand the patient a bill at registration. Revenue is captured the moment the visit begins.",
+    desc: "Fees captured at check-in, not reconstructed later.",
+    motif: "billing",
   },
   {
     icon: Users,
     title: "Complete patient records",
-    desc: "Prescriptions, visits, vitals, and history in one searchable profile. Patients stop carrying paper and nothing gets lost.",
+    desc: "Prescriptions, vitals, and history in one searchable profile.",
+    motif: "records",
   },
   {
     icon: Building2,
     title: "Multi-clinic control",
-    desc: "Run one practice or a hundred from a single owner dashboard, each with its own doctors, receptionists, and access rules.",
+    desc: "One owner dashboard for one practice or a hundred.",
+    motif: "clinics",
   },
   {
     icon: BellRing,
     title: "Automatic follow-ups",
-    desc: "Follow-up reminders are scheduled from the consult and sent by WhatsApp, SMS, or email so patients actually come back.",
+    desc: "Reminders sent by WhatsApp, SMS, or email — patients return.",
+    motif: "followup",
   },
   {
     icon: BarChart3,
     title: "Earnings you can see",
-    desc: "Track revenue by doctor, by clinic, and by day with clear charts. No spreadsheets, no month-end guesswork.",
+    desc: "Revenue by doctor, clinic, and day. No spreadsheets.",
+    motif: "earnings",
   },
   {
     icon: ShieldCheck,
     title: "Role-based access",
-    desc: "Owner, clinic admin, doctor, receptionist. Each role sees exactly what it should and nothing it shouldn't.",
+    desc: "Owner, admin, doctor, desk — each sees only what they should.",
+    motif: "roles",
   },
 ];
 
@@ -187,11 +198,20 @@ export default function LandingPage() {
                 "radial-gradient(60% 60% at 50% 0%, var(--color-brand-100) 0%, transparent 70%)",
             }}
           />
+          {/* Animated floating orbs */}
+          <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden>
+            <div className="float-orb absolute -left-16 top-24 h-64 w-64 rounded-full bg-brand-200/30 blur-3xl" />
+            <div className="float-orb-slow absolute right-0 top-10 h-72 w-72 rounded-full bg-accent-200/30 blur-3xl" />
+            <div className="float-orb absolute left-1/3 top-64 h-56 w-56 rounded-full bg-brand-100/40 blur-3xl" style={{ animationDelay: "2s" }} />
+          </div>
           <div className="mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 sm:pb-24 sm:pt-24 lg:px-8 lg:pb-28">
             <div className="mx-auto max-w-3xl text-center rise-in">
               <span className="eyebrow">
-                <Waves className="h-4 w-4" />
-                Voice-first clinic OS
+                <span className="relative inline-flex h-2 w-2 text-brand-600">
+                  <span className="live-ping" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-600" />
+                </span>
+                India&apos;s first voice-powered clinic OS
               </span>
               <h1 className="heading-display mt-5 text-ink-900">
                 Speak the consult.
@@ -200,9 +220,9 @@ export default function LandingPage() {
                 <span className="text-brand-600">writes itself.</span>
               </h1>
               <p className="text-lead mx-auto mt-6 max-w-2xl text-ink-600">
-                Doctors dictate the prescription and the visit summary out loud. Reception handles
-                registration and billing. Owners run every clinic from one place. MediSync turns the
-                spoken consult into a finished, shareable record in seconds.
+                MediSync is India&apos;s most advanced voice-based prescription and clinic platform.
+                Doctors dictate; reception runs the desk; owners manage every clinic from one place —
+                and the spoken visit becomes a finished, shareable record in seconds.
               </p>
               <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Link href="/signup">
@@ -219,7 +239,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <HeroVisual />
+            <HeroDemo />
           </div>
         </section>
 
@@ -255,25 +275,25 @@ export default function LandingPage() {
             </div>
 
             <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {features.map((f) => {
+              {features.map((f, i) => {
                 const Icon = f.icon;
                 return (
-                  <div
-                    key={f.title}
-                    className="group rounded-2xl border border-ink-200 bg-card p-6 transition-all hover:border-brand-200 hover:shadow-lg hover:shadow-brand-900/5"
-                  >
-                    <span
-                      className={`mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl ${
-                        f.accent
-                          ? "bg-accent-50 text-accent-700"
-                          : "bg-brand-50 text-brand-700"
-                      }`}
-                    >
-                      <Icon className="h-6 w-6" />
-                    </span>
-                    <h3 className="text-base font-semibold text-ink-900">{f.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-ink-500">{f.desc}</p>
-                  </div>
+                  <Reveal key={f.title} delay={(i % 3) * 80}>
+                    <div className="group h-full rounded-2xl border border-ink-200 bg-card p-6 transition-all hover:-translate-y-1 hover:border-brand-200 hover:shadow-xl hover:shadow-brand-900/5">
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${
+                            f.accent ? "bg-accent-50 text-accent-700" : "bg-brand-50 text-brand-700"
+                          }`}
+                        >
+                          <Icon className="h-6 w-6" />
+                        </span>
+                        <FeatureMotif id={f.motif} />
+                      </div>
+                      <h3 className="mt-5 text-base font-semibold text-ink-900">{f.title}</h3>
+                      <p className="mt-1.5 text-sm leading-relaxed text-ink-500">{f.desc}</p>
+                    </div>
+                  </Reveal>
                 );
               })}
             </div>
@@ -292,22 +312,21 @@ export default function LandingPage() {
             </div>
 
             <ol className="mt-16 grid gap-6 lg:grid-cols-4">
-              {steps.map((s) => {
+              {steps.map((s, i) => {
                 const Icon = s.icon;
                 return (
-                  <li
-                    key={s.n}
-                    className="relative rounded-2xl border border-ink-200 bg-card p-6"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold tracking-widest text-brand-600">{s.n}</span>
-                      <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-                        <Icon className="h-5 w-5" />
-                      </span>
-                    </div>
-                    <h3 className="mt-5 text-base font-semibold text-ink-900">{s.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-ink-500">{s.desc}</p>
-                  </li>
+                  <Reveal key={s.n} delay={i * 90}>
+                    <li className="relative h-full rounded-2xl border border-ink-200 bg-card p-6">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold tracking-widest text-brand-600">{s.n}</span>
+                        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+                          <Icon className="h-5 w-5" />
+                        </span>
+                      </div>
+                      <h3 className="mt-5 text-base font-semibold text-ink-900">{s.title}</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-ink-500">{s.desc}</p>
+                    </li>
+                  </Reveal>
                 );
               })}
             </ol>
@@ -331,11 +350,13 @@ export default function LandingPage() {
               <h2 className="heading-section mt-4 text-ink-900">One platform, every role</h2>
             </div>
             <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {teams.map((t) => (
-                <div key={t.role} className="rounded-2xl border border-ink-200 bg-card p-6">
-                  <h3 className="text-base font-semibold text-ink-900">{t.role}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-ink-500">{t.desc}</p>
-                </div>
+              {teams.map((t, i) => (
+                <Reveal key={t.role} delay={(i % 4) * 80}>
+                  <div className="h-full rounded-2xl border border-ink-200 bg-card p-6">
+                    <h3 className="text-base font-semibold text-ink-900">{t.role}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-ink-500">{t.desc}</p>
+                  </div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -494,75 +515,96 @@ export default function LandingPage() {
   );
 }
 
-/* ── Hero visual: a stylized "spoken consult → structured record" mock ── */
-function HeroVisual() {
-  return (
-    <div className="mx-auto mt-16 max-w-4xl rise-in">
-      <div className="rounded-3xl border border-ink-200 bg-card p-3 shadow-2xl shadow-brand-900/10">
-        <div className="rounded-2xl bg-gradient-to-br from-ink-50 to-brand-50/70 p-5 sm:p-8">
-          <div className="grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-stretch">
-            {/* Speaking */}
-            <div className="flex flex-col justify-between rounded-xl border border-ink-200 bg-card p-5">
-              <div className="flex items-center gap-2 text-sm font-medium text-ink-500">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-50 text-accent-700">
-                  <Mic className="h-4 w-4" />
-                </span>
-                Doctor speaking
-              </div>
-              <div className="mt-4 flex h-10 items-end gap-1" aria-hidden>
-                {[5, 9, 14, 8, 18, 12, 22, 10, 16, 7, 13, 6, 11, 17, 9, 4].map((h, i) => (
-                  <span
-                    key={i}
-                    className="w-1.5 flex-1 rounded-full bg-accent-400/70"
-                    style={{ height: `${h * 4}%` }}
-                  />
-                ))}
-              </div>
-              <p className="mt-4 text-sm leading-relaxed text-ink-600">
-                &ldquo;Viral fever. Paracetamol 500mg, three times daily for five days. CBC. Plenty of
-                fluids. Follow up in three days.&rdquo;
-              </p>
-            </div>
-
-            {/* Arrow */}
-            <div className="flex items-center justify-center">
-              <span className="flex h-10 w-10 rotate-90 items-center justify-center rounded-full bg-brand-600 text-white md:rotate-0">
-                <ArrowRight className="h-5 w-5" />
-              </span>
-            </div>
-
-            {/* Structured */}
-            <div className="rounded-xl border border-ink-200 bg-card p-5">
-              <div className="flex items-center gap-2 text-sm font-medium text-ink-500">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-                  <FileText className="h-4 w-4" />
-                </span>
-                Structured prescription
-              </div>
-              <dl className="mt-4 space-y-2.5 text-sm">
-                <Row label="Diagnosis" value="Viral fever" />
-                <Row label="Rx" value="Paracetamol 500mg · TID · 5 days" />
-                <Row label="Lab" value="CBC" />
-                <Row label="Advice" value="Plenty of fluids" />
-                <Row label="Follow-up" value="In 3 days" />
-              </dl>
-              <div className="mt-4 flex items-center gap-2 border-t border-ink-200 pt-3 text-xs font-medium text-brand-700">
-                <Languages className="h-3.5 w-3.5" />
-                Emailed, printed, and reminder scheduled
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-ink-400">{label}</dt>
-      <dd className="text-right font-medium text-ink-800">{value}</dd>
-    </div>
-  );
+/* ── Small infographic motifs for the feature cards ── */
+function FeatureMotif({ id }: { id?: string }) {
+  switch (id) {
+    case "voice":
+      return (
+        <span className="flex h-8 items-end gap-0.5" aria-hidden>
+          {[10, 18, 8, 22, 14, 26, 12, 20, 9].map((h, i) => (
+            <span
+              key={i}
+              className="eq-bar w-1 rounded-full bg-accent-400/70"
+              style={{ height: `${h}px`, animationDelay: `${i * 70}ms`, animationDuration: `${800 + (i % 4) * 120}ms` }}
+            />
+          ))}
+        </span>
+      );
+    case "summary":
+      return (
+        <span className="flex w-20 flex-col gap-1" aria-hidden>
+          <span className="h-1.5 w-full rounded-full bg-accent-200" />
+          <span className="h-1.5 w-4/5 rounded-full bg-accent-200/70" />
+          <span className="h-1.5 w-3/5 rounded-full bg-accent-200/50" />
+        </span>
+      );
+    case "queue":
+      return (
+        <span className="flex gap-1" aria-hidden>
+          {["1", "2", "3"].map((n, i) => (
+            <span
+              key={n}
+              className={`flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold ${
+                i === 0 ? "bg-brand-600 text-white" : "bg-brand-50 text-brand-600"
+              }`}
+            >
+              {n}
+            </span>
+          ))}
+        </span>
+      );
+    case "billing":
+      return (
+        <span className="flex items-center gap-1 rounded-lg bg-brand-50 px-2 py-1 text-xs font-bold text-brand-700" aria-hidden>
+          <IndianRupee className="h-3.5 w-3.5" /> Paid
+        </span>
+      );
+    case "records":
+      return (
+        <span className="flex flex-col gap-1" aria-hidden>
+          {[16, 12, 14].map((w, i) => (
+            <span key={i} className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-brand-300" />
+              <span className="h-1.5 rounded-full bg-ink-200" style={{ width: `${w * 4}px` }} />
+            </span>
+          ))}
+        </span>
+      );
+    case "clinics":
+      return (
+        <span className="flex items-end gap-1" aria-hidden>
+          {[10, 16, 12].map((h, i) => (
+            <span key={i} className="w-3 rounded-t-sm bg-brand-200" style={{ height: `${h + 8}px` }} />
+          ))}
+        </span>
+      );
+    case "followup":
+      return (
+        <span className="flex gap-1" aria-hidden>
+          {["WA", "SMS", "@"].map((c) => (
+            <span key={c} className="flex h-6 items-center rounded-md bg-brand-50 px-1.5 text-[9px] font-bold text-brand-600">
+              {c}
+            </span>
+          ))}
+        </span>
+      );
+    case "earnings":
+      return (
+        <span className="flex h-8 items-end gap-1" aria-hidden>
+          {[10, 16, 13, 22, 18, 26].map((h, i) => (
+            <span key={i} className="w-1.5 rounded-t-sm bg-gradient-to-t from-brand-300 to-brand-500" style={{ height: `${h}px` }} />
+          ))}
+        </span>
+      );
+    case "roles":
+      return (
+        <span className="flex -space-x-1.5" aria-hidden>
+          {["bg-brand-500", "bg-accent-500", "bg-brand-300", "bg-ink-300"].map((c, i) => (
+            <span key={i} className={`h-5 w-5 rounded-full ring-2 ring-card ${c}`} />
+          ))}
+        </span>
+      );
+    default:
+      return null;
+  }
 }

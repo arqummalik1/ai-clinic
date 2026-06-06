@@ -12,8 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import type { StructuredPrescription, Vitals } from "@/lib/ai";
-import { saveAndShipPrescription } from "./actions";
+import type { StructuredPrescription, Vitals, Medicine } from "@/lib/ai";
+import { saveAndShipPrescription, getDoctorMedicineFavorites, type FavoriteMedicine } from "./actions";
 import { Save, Mail, AlertTriangle, User, Loader2, Globe, Mic, MicOff, Keyboard, Sparkles, Volume2, Sliders, Clock, FileText, Smartphone } from "lucide-react";
 import { ECGVisualizer } from "@/components/voice/ECGVisualizer";
 import { cn } from "@/lib/utils";
@@ -92,6 +92,11 @@ const DEFAULT_MIC_MODE = "auto-stop";
 const DEFAULT_AI_PAUSE_SEC = 3;
 const DEFAULT_MIC_STOP_SEC = 5;
 
+// Top-level prescription fields that can be individually locked from AI overwrite.
+const FIELD_KEYS: (keyof StructuredPrescription)[] = [
+  "diagnosis", "chiefComplaint", "medicines", "labTests", "advice", "followUpDays", "clinicalSummary", "vitals",
+];
+
 const EMPTY_RX: StructuredPrescription = {
   diagnosis: "",
   chiefComplaint: "",
@@ -129,14 +134,33 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
 
   const [patient, setPatient] = useState<PatientCtx | null>(null);
   const [lastDx, setLastDx] = useState<string | null>(null);
+  interface LastRxFull {
+    diagnosis: string;
+    chiefComplaint: string;
+    medicines: Medicine[];
+    labTests: string[];
+    advice: string;
+    followUpDays: number | null;
+    clinicalSummary: string;
+    createdAt: string;
+  }
+  const [lastRxFull, setLastRxFull] = useState<LastRxFull | null>(null);
+  const [favorites, setFavorites] = useState<FavoriteMedicine[]>([]);
   const [rx, setRx] = useState<StructuredPrescription>(EMPTY_RX);
   const [rawVoice, setRawVoice] = useState<string>("");
   const [isAiGenerated, setIsAiGenerated] = useState(false);
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("voice_rx_language");
+      if (saved && LANGUAGES.some(l => l.code === saved)) return saved;
+    }
+    return "en";
+  });
   const [view, setView] = useState<FlowView>("loading");
   const [waitingPatients, setWaitingPatients] = useState<{ id: string; full_name: string; appointment_id?: string }[]>([]);
   const [emailToAdd, setEmailToAdd] = useState("");
   const [saving, setSaving] = useState(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Notification toggles
@@ -201,6 +225,19 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
   const [showSettings, setShowSettings] = useState(false);
 
   // Save settings change to localStorage
+  useEffect(() => {
+    localStorage.setItem("voice_rx_language", language);
+  }, [language]);
+
+  // Load the doctor's personal medicine shelf (Doctor Memory v1) once on mount.
+  useEffect(() => {
+    let active = true;
+    getDoctorMedicineFavorites()
+      .then((favs) => { if (active) setFavorites(favs); })
+      .catch(() => { /* non-fatal: editor just won't show favorites */ });
+    return () => { active = false; };
+  }, []);
+
   useEffect(() => {
     localStorage.setItem("voice_rx_mic_mode", micMode);
   }, [micMode]);
@@ -328,6 +365,31 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
   // Use refs for lifecycle-safe async operations
   const activeRef = useRef(true);
 
+  // --- Edit-protection: track which fields the doctor has manually edited so
+  // the live AI re-parse never silently overwrites the doctor's corrections. ---
+  const userEditedRef = useRef<Set<keyof StructuredPrescription>>(new Set());
+  const [editedFields, setEditedFields] = useState<string[]>([]);
+  const rxRef = useRef<StructuredPrescription>(rx);
+  useEffect(() => { rxRef.current = rx; }, [rx]);
+
+  // Wraps the editor's onChange: marks any changed field as doctor-edited (locked).
+  const handleEditorChange = useCallback((next: StructuredPrescription) => {
+    const prev = rxRef.current;
+    let changed = false;
+    for (const k of FIELD_KEYS) {
+      if (JSON.stringify(next[k]) !== JSON.stringify(prev[k])) {
+        if (!userEditedRef.current.has(k)) { userEditedRef.current.add(k); changed = true; }
+      }
+    }
+    if (changed) setEditedFields(Array.from(userEditedRef.current));
+    setRx(next);
+  }, []);
+  // Clears all edit locks (new patient / fresh start).
+  const resetEditLocks = useCallback(() => {
+    userEditedRef.current = new Set();
+    setEditedFields([]);
+  }, []);
+
   // Live parsing endpoint connector
   const triggerLiveParsing = useCallback(async (text: string) => {
     if (!text.trim() || !patient) return;
@@ -351,16 +413,17 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
       if (pRes.ok) {
         const { prescription } = await pRes.json();
         if (prescription) {
+          const edited = userEditedRef.current;
           setRx(prev => ({
             ...prev,
-            diagnosis: prescription.diagnosis || prev.diagnosis,
-            chiefComplaint: prescription.chiefComplaint || prev.chiefComplaint,
-            medicines: prescription.medicines || prev.medicines,
-            labTests: prescription.labTests || prev.labTests,
-            advice: prescription.advice || prev.advice,
-            followUpDays: prescription.followUpDays !== undefined ? prescription.followUpDays : prev.followUpDays,
-            clinicalSummary: prescription.clinicalSummary || prev.clinicalSummary,
-            vitals: mergeVitals(prev.vitals, prescription.vitals),
+            diagnosis: edited.has("diagnosis") ? prev.diagnosis : (prescription.diagnosis || prev.diagnosis),
+            chiefComplaint: edited.has("chiefComplaint") ? prev.chiefComplaint : (prescription.chiefComplaint || prev.chiefComplaint),
+            medicines: edited.has("medicines") ? prev.medicines : ((prescription.medicines && prescription.medicines.length) ? prescription.medicines : prev.medicines),
+            labTests: edited.has("labTests") ? prev.labTests : ((prescription.labTests && prescription.labTests.length) ? prescription.labTests : prev.labTests),
+            advice: edited.has("advice") ? prev.advice : (prescription.advice || prev.advice),
+            followUpDays: edited.has("followUpDays") ? prev.followUpDays : (prescription.followUpDays !== undefined ? prescription.followUpDays : prev.followUpDays),
+            clinicalSummary: edited.has("clinicalSummary") ? prev.clinicalSummary : (prescription.clinicalSummary || prev.clinicalSummary),
+            vitals: edited.has("vitals") ? prev.vitals : mergeVitals(prev.vitals, prescription.vitals),
           }));
           setIsAiGenerated(true);
           setVisualizerStep("done");
@@ -566,10 +629,10 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
       }));
     }
 
-    // Load previous diagnosis
+    // Load previous prescription (full) — powers "Repeat last Rx" + the one-line summary.
     const { data: lastRx, error: rxError } = await supabase
       .from("prescriptions")
-      .select("diagnosis")
+      .select("diagnosis, chief_complaint, medicines, lab_tests, advice, follow_up_days, clinical_summary, created_at")
       .eq("patient_id", pid)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -581,6 +644,22 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
 
     if (activeRef.current && lastRx?.diagnosis) {
       setLastDx(lastRx.diagnosis);
+    }
+
+    if (activeRef.current && lastRx) {
+      const meds = Array.isArray(lastRx.medicines) ? (lastRx.medicines as unknown as Medicine[]) : [];
+      setLastRxFull({
+        diagnosis: lastRx.diagnosis ?? "",
+        chiefComplaint: lastRx.chief_complaint ?? "",
+        medicines: meds,
+        labTests: (lastRx.lab_tests as string[] | null) ?? [],
+        advice: lastRx.advice ?? "",
+        followUpDays: lastRx.follow_up_days ?? null,
+        clinicalSummary: lastRx.clinical_summary ?? "",
+        createdAt: lastRx.created_at as string,
+      });
+    } else if (activeRef.current) {
+      setLastRxFull(null);
     }
   }, [supabase]);
 
@@ -650,6 +729,9 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
     setSelectedPatientId(pid);
     setSelectedAppointmentId(aptId);
     setErrorMessage(null);
+    resetEditLocks();
+    setRx(EMPTY_RX);
+    setIsAiGenerated(false);
 
     try {
       await loadPatientData(pid, aptId);
@@ -663,7 +745,7 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
         setView("error");
       }
     }
-  }, [loadPatientData]);
+  }, [loadPatientData, resetEditLocks]);
 
   // Initial load: either load patient directly if patientId provided, or show the picker
   useEffect(() => {
@@ -701,6 +783,7 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
   }, [initialPatientId, initialAppointmentId]);
 
   const handleAiResult = (result: StructuredPrescription & { rawVoiceText: string }) => {
+    resetEditLocks();
     setRx({
       diagnosis: result.diagnosis,
       chiefComplaint: result.chiefComplaint,
@@ -715,6 +798,29 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
     setIsAiGenerated(true);
     toast.success("Prescription generated. Review and save.");
   };
+
+  // One-tap reuse of the patient's previous prescription. Loads the full script
+  // and locks every field so live dictation can't wipe the carried-forward Rx
+  // (the doctor edits by hand, or just signs). Highest-ROI repeat-patient flow.
+  const repeatLastPrescription = useCallback(() => {
+    if (!lastRxFull) return;
+    setRx(prev => ({
+      diagnosis: lastRxFull.diagnosis,
+      chiefComplaint: lastRxFull.chiefComplaint,
+      medicines: lastRxFull.medicines.map(m => ({ ...m })),
+      labTests: [...lastRxFull.labTests],
+      advice: lastRxFull.advice,
+      followUpDays: lastRxFull.followUpDays,
+      clinicalSummary: lastRxFull.clinicalSummary,
+      vitals: prev.vitals, // keep today's freshly-loaded vitals
+    }));
+    // Lock everything carried forward against AI overwrite.
+    userEditedRef.current = new Set(FIELD_KEYS);
+    setEditedFields([...FIELD_KEYS]);
+    setIsAiGenerated(true);
+    if (workflowMode === "dictation" && isListening) stopListening();
+    toast.success("Repeated last prescription. Review, tweak durations, and sign.");
+  }, [lastRxFull, workflowMode, isListening, stopListening]);
 
   const persistEmailIfNeeded = async () => {
     if (!patient || patient.email || !emailToAdd) return;
@@ -747,26 +853,23 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
       return;
     }
 
-    if (result.emailed && result.whatsAppSent) {
-      toast.success("Prescription saved, emailed & WhatsApp'd to patient");
-    } else if (result.emailed) {
-      toast.success("Prescription saved & emailed to patient");
-    } else if (result.whatsAppSent) {
-      toast.success("Prescription saved & WhatsApp'd to patient");
+    if (result.emailQueued && result.whatsAppQueued) {
+      toast.success("Prescription saved — emailing & WhatsApping to patient");
+    } else if (result.emailQueued) {
+      toast.success("Prescription saved — emailing to patient");
+    } else if (result.whatsAppQueued) {
+      toast.success("Prescription saved — sending on WhatsApp");
     } else {
       toast.success("Prescription saved successfully");
     }
 
     if (result.pdfUrl) {
-      const w = window.open(result.pdfUrl, "_blank");
-      if (w) {
-        setTimeout(() => {
-          try { w.print(); } catch { /* user-initiated print only on some browsers */ }
-        }, 1200);
-      }
+      // Show the PDF inline (no popup, no surprise auto-print). The doctor
+      // confirms visually, prints/downloads on demand, then proceeds.
+      setPdfPreviewUrl(result.pdfUrl);
+    } else {
+      setTimeout(() => router.push("/doctor/prescriptions"), 800);
     }
-
-    setTimeout(() => router.push("/doctor/prescriptions"), 1000);
   };
 
   if (view === "error") {
@@ -922,6 +1025,17 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
                 <div className="text-xs text-slate-500 font-medium bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                   Last visit: {lastDx}
                 </div>
+              )}
+              {lastRxFull && lastRxFull.medicines.length > 0 && (
+                <Button
+                  size="sm"
+                  onClick={repeatLastPrescription}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm rounded-lg"
+                  title={`Repeat: ${lastRxFull.medicines.map(m => m.name).filter(Boolean).join(", ")}`}
+                >
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                  Repeat last Rx
+                </Button>
               )}
               <Button
                 variant="outline"
@@ -1215,7 +1329,14 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
             )}
           </div>
           
-          <PrescriptionEditor value={rx} onChange={setRx} />
+          <PrescriptionEditor
+            value={rx}
+            onChange={handleEditorChange}
+            favorites={favorites}
+            transcript={rawVoice}
+            aiGenerated={isAiGenerated}
+            editedFields={editedFields}
+          />
 
           {!patient.email && (
             <Card className="border-amber-200 bg-amber-50/50 shadow-sm">
@@ -1269,6 +1390,55 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
           </div>
         </div>
       )}
+
+      {/* In-page PDF preview after sign-off (replaces popup + auto-print) */}
+      <Dialog
+        open={!!pdfPreviewUrl}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPdfPreviewUrl(null);
+            router.push("/doctor/prescriptions");
+          }
+        }}
+      >
+        <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden p-0">
+          <DialogHeader className="border-b border-slate-100 p-4">
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
+              <FileText className="h-5 w-5 text-emerald-600" />
+              Prescription saved
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Review the prescription below. Print or download it, or finish to move to your next patient.
+            </DialogDescription>
+          </DialogHeader>
+
+          {pdfPreviewUrl && (
+            <iframe
+              src={pdfPreviewUrl}
+              title="Prescription PDF"
+              className="h-[60vh] w-full border-0 bg-slate-100"
+            />
+          )}
+
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 p-4">
+            <a href={pdfPreviewUrl ?? "#"} target="_blank" rel="noopener noreferrer" download>
+              <Button variant="outline" size="sm">
+                <FileText className="mr-1.5 h-4 w-4" /> Open / Print
+              </Button>
+            </a>
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => {
+                setPdfPreviewUrl(null);
+                router.push("/doctor/prescriptions");
+              }}
+            >
+              Done — next patient
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Chronological history dialog */}
       <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>

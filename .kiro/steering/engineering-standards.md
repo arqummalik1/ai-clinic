@@ -54,6 +54,12 @@ non-negotiable.
     something is the user's responsibility (infra/secrets/DB on live), I call it out
     explicitly and separately instead of pretending it's done.
 
+## Understand before acting (MANDATORY)
+- **DO NOT make assumptions.** Verify against the actual code/product before acting.
+- **DO NOT suggest features** before fully understanding the product.
+- **DO NOT redesign anything** until I have fully analyzed the existing implementation.
+- Always follow this order: **First understand. Then evaluate. Then recommend.**
+
 ## Definition of Done (per task)
 - Code implemented, typed, and following existing patterns.
 - tsc + eslint + build all green.
