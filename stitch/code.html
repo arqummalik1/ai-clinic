@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MediSync - Voice Prescription</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-variant": "#d3e4fe",
+                      "inverse-primary": "#b3c5ff",
+                      "on-tertiary-container": "#faf6ff",
+                      "on-tertiary": "#ffffff",
+                      "on-surface": "#0b1c30",
+                      "on-secondary-container": "#00714d",
+                      "secondary-fixed-dim": "#4edea3",
+                      "on-background": "#0b1c30",
+                      "tertiary-container": "#5d60eb",
+                      "tertiary": "#4345d1",
+                      "primary-container": "#0066ff",
+                      "inverse-on-surface": "#eaf1ff",
+                      "error": "#ba1a1a",
+                      "surface-container-low": "#eff4ff",
+                      "primary-fixed-dim": "#b3c5ff",
+                      "outline-variant": "#c2c6d8",
+                      "on-error-container": "#93000a",
+                      "on-primary-container": "#f8f7ff",
+                      "on-tertiary-fixed-variant": "#2f2ebe",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-high": "#dce9ff",
+                      "secondary-fixed": "#6ffbbe",
+                      "error-container": "#ffdad6",
+                      "tertiary-fixed": "#e1e0ff",
+                      "surface-dim": "#cbdbf5",
+                      "tertiary-fixed-dim": "#c0c1ff",
+                      "primary-fixed": "#dae1ff",
+                      "on-primary-fixed": "#001849",
+                      "surface": "#f8f9ff",
+                      "primary": "#0050cb",
+                      "secondary-container": "#6cf8bb",
+                      "on-secondary-fixed-variant": "#005236",
+                      "on-secondary-fixed": "#002113",
+                      "on-error": "#ffffff",
+                      "on-primary": "#ffffff",
+                      "on-tertiary-fixed": "#07006c",
+                      "surface-tint": "#0054d6",
+                      "surface-container": "#e5eeff",
+                      "secondary": "#006c49",
+                      "background": "#f8f9ff",
+                      "surface-container-highest": "#d3e4fe",
+                      "outline": "#727687",
+                      "on-primary-fixed-variant": "#003fa4",
+                      "surface-bright": "#f8f9ff",
+                      "on-secondary": "#ffffff",
+                      "inverse-surface": "#213145",
+                      "on-surface-variant": "#424656"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "gutter": "24px",
+                      "md": "24px",
+                      "base": "4px",
+                      "sm": "16px",
+                      "xl": "64px",
+                      "lg": "40px",
+                      "xs": "8px",
+                      "margin-desktop": "32px"
+              },
+              "fontFamily": {
+                      "label-sm": ["Geist"],
+                      "body-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "display-lg": ["Geist"],
+                      "headline-lg": ["Geist"],
+                      "headline-md": ["Geist"],
+                      "label-md": ["Geist"],
+                      "headline-lg-mobile": ["Geist"],
+                      "body-sm": ["Inter"]
+              },
+              "fontSize": {
+                      "label-sm": ["12px", { "lineHeight": "1", "fontWeight": "600" }],
+                      "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                      "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                      "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                      "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                      "label-md": ["14px", { "lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                      "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                      "body-sm": ["14px", { "lineHeight": "1.4", "fontWeight": "400" }]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .ecg-line {
+            stroke-dasharray: 200;
+            stroke-dashoffset: 200;
+            animation: ecg-draw 1.5s infinite linear;
+        }
+        
+        @keyframes ecg-draw {
+            0% { stroke-dashoffset: 200; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { stroke-dashoffset: -200; opacity: 0; }
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        
+        .pulse-ring {
+            animation: ring-pulse 2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+        }
+        
+        @keyframes ring-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 102, 255, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(0, 102, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 102, 255, 0); }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm docked full-width top-0 sticky flex justify-between items-center w-full px-gutter py-4 max-w-full z-40 transition-colors duration-150">
+<div class="flex items-center gap-md">
+<h1 class="font-headline-md md:text-headline-md text-headline-md-mobile font-bold text-primary">MediSync</h1>
+</div>
+<div class="flex items-center gap-gutter">
+<nav class="hidden md:flex items-center gap-sm">
+<!-- Active Session -> closest to Active Navigation -->
+<span class="text-primary font-bold border-b-2 border-primary pb-1 flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">radio_button_checked</span>
+                    Active Session
+                </span>
+<span class="text-on-surface-variant font-medium hover:bg-primary-container/10 transition-colors px-2 py-1 rounded-md cursor-pointer">John Doe, 45M</span>
+<span class="text-on-surface-variant font-medium hover:bg-primary-container/10 transition-colors px-2 py-1 rounded-md cursor-pointer">English</span>
+<span class="text-on-surface-variant font-medium px-2 py-1">08:24</span>
+</nav>
+<button class="text-primary hover:bg-primary-container/10 transition-colors p-2 rounded-full scale-95 duration-150">
+<span class="material-symbols-outlined text-[24px]">account_circle</span>
+</button>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- Main Canvas -->
+<main class="flex-1 overflow-y-auto pb-[120px] px-margin-mobile md:px-margin-desktop py-md">
+<div class="max-w-4xl mx-auto space-y-md">
+<!-- Patient Context Card -->
+<section class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-md shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm mb-sm pb-sm border-b border-outline-variant/20">
+<div class="flex items-center gap-sm">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary font-headline-md">
+                                JD
+                            </div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">John Doe</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">45 yrs, Male • MRN: 948-291-X</p>
+</div>
+</div>
+<div class="bg-error-container/20 border border-error/30 text-error px-sm py-xs rounded-full flex items-center gap-xs font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px]">warning</span>
+                            Allergy: Penicillin
+                        </div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-sm">
+<!-- Vitals Chips -->
+<div class="bg-secondary-container/10 rounded-lg p-xs flex items-center gap-xs">
+<span class="material-symbols-outlined text-secondary text-[20px]">favorite</span>
+<div>
+<div class="font-label-sm text-label-sm text-secondary">BP</div>
+<div class="font-body-md text-body-md font-semibold text-on-surface">120/80</div>
+</div>
+</div>
+<div class="bg-secondary-container/10 rounded-lg p-xs flex items-center gap-xs">
+<span class="material-symbols-outlined text-secondary text-[20px]">monitor_heart</span>
+<div>
+<div class="font-label-sm text-label-sm text-secondary">Pulse</div>
+<div class="font-body-md text-body-md font-semibold text-on-surface">78 bpm</div>
+</div>
+</div>
+<div class="bg-tertiary-container/10 rounded-lg p-xs flex items-center gap-xs">
+<span class="material-symbols-outlined text-tertiary text-[20px]">device_thermostat</span>
+<div>
+<div class="font-label-sm text-label-sm text-tertiary">Temp</div>
+<div class="font-body-md text-body-md font-semibold text-on-surface">98.6°F</div>
+</div>
+</div>
+<div class="bg-primary-container/10 rounded-lg p-xs flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">air</span>
+<div>
+<div class="font-label-sm text-label-sm text-primary">SpO2</div>
+<div class="font-body-md text-body-md font-semibold text-on-surface">99%</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Voice Dictation Hero -->
+<section class="bg-primary-fixed/30 border border-primary/20 rounded-xl p-xl flex flex-col items-center justify-center min-h-[300px] relative overflow-hidden shadow-[0_8px_30px_rgba(0,102,255,0.05)]">
+<div class="absolute inset-0 bg-gradient-to-b from-transparent to-surface-container-lowest/50 pointer-events-none"></div>
+<div class="relative z-10 flex flex-col items-center gap-md">
+<div class="w-24 h-24 rounded-full bg-primary flex items-center justify-center shadow-lg pulse-ring cursor-pointer hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-on-primary text-[40px]" style="font-variation-settings: 'FILL' 1;">mic</span>
+</div>
+<div class="flex flex-col items-center gap-xs">
+<div class="flex items-center justify-center h-8 w-full">
+<svg class="text-primary overflow-visible" height="32" viewbox="0 0 120 32" width="120">
+<path class="ecg-line" d="M 0 16 L 30 16 L 35 4 L 40 28 L 45 8 L 50 24 L 55 16 L 120 16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div class="font-label-md text-label-md text-primary font-medium flex items-center gap-xs">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+                                Listening... 00:42
+                            </div>
+</div>
+</div>
+</section>
+<!-- AI-Drafted Prescription Area -->
+<div class="space-y-sm">
+<div class="flex items-center gap-xs mb-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">auto_awesome</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">AI Drafted Prescription</h3>
+</div>
+<!-- Chief Complaint & Diagnosis -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-sm">
+<div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-md shadow-sm group hover:border-primary/50 transition-colors cursor-text">
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-xs flex justify-between items-center">
+                                Chief Complaint
+                                <span class="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-100 transition-opacity text-primary">edit</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface">Persistent cough for 3 days, low-grade fever.</p>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-md shadow-sm group hover:border-primary/50 transition-colors cursor-text">
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-xs flex justify-between items-center">
+                                Diagnosis
+                                <span class="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-100 transition-opacity text-primary">edit</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium">Acute Bronchitis</p>
+</div>
+</div>
+<!-- Medicines -->
+<div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-md shadow-sm">
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-sm flex justify-between items-center">
+                            Medicines
+                            <button class="text-primary hover:bg-primary-container/10 p-1 rounded transition-colors"><span class="material-symbols-outlined text-[18px]">add</span></button>
+</div>
+<div class="space-y-xs">
+<div class="flex items-center justify-between p-sm bg-surface rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-tertiary">pill</span>
+<div>
+<div class="font-label-md text-label-md font-semibold text-on-surface">Paracetamol 650mg</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">1 tab - SOS - after meals</div>
+</div>
+</div>
+<button class="text-outline hover:text-error transition-colors"><span class="material-symbols-outlined text-[20px]">close</span></button>
+</div>
+<div class="flex items-center justify-between p-sm bg-surface rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-tertiary">pill</span>
+<div>
+<div class="font-label-md text-label-md font-semibold text-on-surface">Amoxicillin 500mg</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">1 tab - TID - for 5 days</div>
+</div>
+</div>
+<button class="text-outline hover:text-error transition-colors"><span class="material-symbols-outlined text-[20px]">close</span></button>
+</div>
+</div>
+</div>
+<!-- Labs/Advice -->
+<div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-md shadow-sm">
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-sm">Labs &amp; Advice</div>
+<div class="flex flex-wrap gap-xs">
+<div class="bg-surface-variant text-on-surface-variant px-sm py-1 rounded-full font-label-md text-label-md flex items-center gap-xs border border-outline-variant/30">
+                                CBC <button class="hover:text-error"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</div>
+<div class="bg-surface-variant text-on-surface-variant px-sm py-1 rounded-full font-label-md text-label-md flex items-center gap-xs border border-outline-variant/30">
+                                Chest X-Ray <button class="hover:text-error"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</div>
+<button class="bg-surface border border-dashed border-outline text-outline px-sm py-1 rounded-full font-label-md text-label-md flex items-center gap-xs hover:border-primary hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[14px]">add</span> Add Lab
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- SideNavBar (Contextual Patient History) -->
+<aside class="hidden xl:flex flex-col bg-surface-container-lowest dark:bg-surface-dim border-l border-outline-variant/30 shadow-xl fixed right-0 h-full w-80 py-6 px-4 ease-in-out duration-300 z-30 pt-[80px]">
+<div class="mb-lg">
+<h2 class="font-headline-md text-headline-md text-on-surface font-bold">Patient History</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Last visit: 12 Oct 2023</p>
+<button class="mt-sm w-full border border-outline text-on-surface font-label-md text-label-md py-2 rounded-lg hover:bg-surface-container-high transition-all">
+                    View Full Record
+                </button>
+</div>
+<nav class="flex-1 overflow-y-auto space-y-2 pr-2">
+<!-- Active Tab: Timeline aligns best with "History" concept, though it's dictation, timeline is the default view here -->
+<a class="flex items-center gap-sm px-sm py-3 bg-primary-container text-on-primary-container rounded-lg font-label-md text-label-md hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">history</span>
+                    Timeline
+                </a>
+<a class="flex items-center gap-sm px-sm py-3 text-on-surface-variant hover:text-on-surface rounded-lg font-label-md text-label-md hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">pill</span>
+                    Medicines
+                </a>
+<a class="flex items-center gap-sm px-sm py-3 text-on-surface-variant hover:text-on-surface rounded-lg font-label-md text-label-md hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">biotech</span>
+                    Labs
+                </a>
+<a class="flex items-center gap-sm px-sm py-3 text-on-surface-variant hover:text-on-surface rounded-lg font-label-md text-label-md hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">image</span>
+                    Imaging
+                </a>
+<a class="flex items-center gap-sm px-sm py-3 text-on-surface-variant hover:text-on-surface rounded-lg font-label-md text-label-md hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">description</span>
+                    Notes
+                </a>
+</nav>
+</aside>
+</div>
+<!-- BottomNavBar -->
+<div class="bg-surface/90 backdrop-blur-xl border-t border-outline-variant/50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] fixed bottom-0 w-full z-50 rounded-t-xl flex justify-end items-center px-gutter py-4 gap-4 transition-all">
+<button class="text-on-surface-variant border border-outline px-6 py-3 rounded-full flex items-center gap-2 font-label-md text-label-md hover:brightness-110 active:scale-98 transition-all bg-transparent">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+            Save &amp; Email
+        </button>
+<button class="text-on-surface-variant border border-outline px-6 py-3 rounded-full flex items-center gap-2 font-label-md text-label-md hover:brightness-110 active:scale-98 transition-all bg-transparent">
+<span class="material-symbols-outlined text-[20px]">print</span>
+            Save &amp; Print
+        </button>
+<button class="bg-primary text-on-primary font-bold px-8 py-3 rounded-full flex items-center gap-2 font-label-md text-label-md hover:brightness-110 active:scale-98 transition-all shadow-md">
+<span class="material-symbols-outlined text-[20px]">save</span>
+            Save Prescription
+        </button>
+</div>
+</body></html>
