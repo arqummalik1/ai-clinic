@@ -16,6 +16,7 @@ import type { StructuredPrescription, Vitals, Medicine } from "@/lib/ai";
 import { saveAndShipPrescription, getDoctorMedicineFavorites, getPrescriptionHeader, type FavoriteMedicine, type PrescriptionHeaderInfo } from "./actions";
 import { Save, Mail, AlertTriangle, User, Loader2, Globe, Mic, MicOff, Keyboard, Sparkles, Volume2, Sliders, Clock, FileText, Smartphone, Thermometer, HeartPulse, Droplets, Weight, Ruler, Activity, Gauge } from "lucide-react";
 import { ECGVisualizer } from "@/components/voice/ECGVisualizer";
+import { PremiumPatientQueue } from "@/components/doctor/PremiumPatientQueue";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
@@ -176,7 +177,7 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
     return "en";
   });
   const [view, setView] = useState<FlowView>("loading");
-  const [waitingPatients, setWaitingPatients] = useState<{ id: string; full_name: string; appointment_id?: string }[]>([]);
+  const [waitingPatients, setWaitingPatients] = useState<{ id: string; full_name: string; appointment_id?: string; token_number?: number | null }[]>([]);
   const [emailToAdd, setEmailToAdd] = useState("");
   const [saving, setSaving] = useState(false);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
@@ -736,13 +737,14 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
 
     const today = new Date().toISOString().split("T")[0];
 
-    // Step 1: Fetch appointments (with only scalar columns, no joins)
+    // Step 1: Fetch appointments with token_number, sorted FIFO (ascending)
     const { data: appointments, error: appointmentsError } = await supabase
       .from("appointments")
-      .select("id, patient_id")
+      .select("id, patient_id, token_number")
       .eq("doctor_id", user.id)
       .eq("appointment_date", today)
-      .in("status", ["waiting", "in_progress"]);
+      .in("status", ["waiting", "in_progress"])
+      .order("token_number", { ascending: true }); // FIFO: First patient first
 
     if (appointmentsError) {
       throw new Error(`Appointments query failed: ${appointmentsError.message}`);
@@ -767,12 +769,13 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
       throw new Error(`Patients query failed: ${patientsError.message}`);
     }
 
-    // Step 3: Build the waiting list
+    // Step 3: Build the waiting list in FIFO order (already sorted by token_number)
     const patientMap = new Map((patients ?? []).map(p => [p.id, p.full_name]));
     const list = appointments.map(a => ({
       id: a.patient_id,
       full_name: patientMap.get(a.patient_id) ?? "Patient",
       appointment_id: a.id,
+      token_number: a.token_number,
     }));
 
 
@@ -1014,25 +1017,12 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
 
   if (view === "picker") {
     return (
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <h2 className="text-xl font-semibold">Pick a patient to prescribe for</h2>
-          {waitingPatients.length === 0 && <p className="text-sm text-muted-foreground">No appointments today.</p>}
-          <div className="grid gap-2 md:grid-cols-2">
-            {waitingPatients.map((p) => (
-              <Button
-                key={p.appointment_id ?? p.id}
-                variant="outline"
-                onClick={() => handleSelectPatient(p.id, p.appointment_id)}
-                className="justify-start"
-              >
-                <User className="mr-2 h-4 w-4 flex-shrink-0" />
-                <span className="truncate">{p.full_name}</span>
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="mx-auto max-w-3xl">
+        <PremiumPatientQueue
+          patients={waitingPatients}
+          onSelectPatient={handleSelectPatient}
+        />
+      </div>
     );
   }
 
