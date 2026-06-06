@@ -11,11 +11,12 @@ import { addDaysISO } from "@/lib/utils";
  * Fetch a remote image (clinic logo / doctor signature) and return it as a
  * base64 data URL suitable for jsPDF.addImage. Best-effort: returns null on any
  * failure so PDF generation never breaks on a missing/invalid asset.
+ * Uses a 2-second timeout to prevent long waits.
  */
 async function fetchImageAsset(url?: string | null): Promise<PrescriptionImageAsset | null> {
   if (!url || !/^https?:\/\//i.test(url)) return null;
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(2000) }); // Reduced from 5s to 2s
     if (!res.ok) return null;
     const contentType = (res.headers.get("content-type") || "").toLowerCase();
     const format: "PNG" | "JPEG" = contentType.includes("jpeg") || contentType.includes("jpg") ? "JPEG" : "PNG";
