@@ -15,8 +15,10 @@ export default async function DoctorEarningsPage() {
 
   if (perms && perms.can_view_earnings === false) {
     return (
-      <div className="rounded-xl border bg-white p-12 text-center">
-        <p className="text-muted-foreground">You don&apos;t have access to earnings.</p>
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="glass-card rounded-xl border p-12 text-center">
+          <p className="text-brand-700">You don't have access to earnings.</p>
+        </div>
       </div>
     );
   }
@@ -24,8 +26,10 @@ export default async function DoctorEarningsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Your earnings</h1>
-        <p className="text-sm text-muted-foreground">Revenue from completed consultations</p>
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-brand-800 to-brand-900 bg-clip-text text-transparent">
+          Your earnings
+        </h1>
+        <p className="text-sm text-brand-600 mt-1">Revenue from completed consultations</p>
       </div>
       <EarningsChart doctorId={user.id} />
     </div>

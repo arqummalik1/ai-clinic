@@ -11,32 +11,32 @@
    ════════════════════════════════════════════════════════════════════ */
 
 @theme {
-  /* ── Brand scale (the one knob that recolors the product) ──────────
-     A calm, clinical indigo-blue — trust + technology. */
-  --color-brand-50:  hsl(223 100% 97%);
-  --color-brand-100: hsl(223 96% 94%);
-  --color-brand-200: hsl(223 94% 87%);
-  --color-brand-300: hsl(223 90% 78%);
-  --color-brand-400: hsl(224 84% 67%);
-  --color-brand-500: hsl(224 76% 58%);
-  --color-brand-600: hsl(224 72% 48%);
-  --color-brand-700: hsl(225 70% 40%);
-  --color-brand-800: hsl(226 64% 33%);
-  --color-brand-900: hsl(227 58% 27%);
-  --color-brand-950: hsl(229 56% 17%);
+  /* ── Brand scale (Navy blue — premium, calming, professional) ──────────
+     Luxury car interior design thinking — reduces mental burden. */
+  --color-brand-50:  hsl(220 100% 97%);
+  --color-brand-100: hsl(220 95% 94%);
+  --color-brand-200: hsl(220 90% 88%);
+  --color-brand-300: hsl(220 85% 78%);
+  --color-brand-400: hsl(220 80% 65%);
+  --color-brand-500: hsl(220 75% 55%);
+  --color-brand-600: hsl(220 70% 48%);
+  --color-brand-700: hsl(220 65% 38%);
+  --color-brand-800: hsl(220 60% 28%);
+  --color-brand-900: hsl(220 55% 20%);
+  --color-brand-950: hsl(220 50% 12%);
 
-  /* ── Accent scale (sparingly — denotes "AI / voice" moments) ──────
-     A supporting teal that reads as vitality without going rainbow. */
-  --color-accent-50:  hsl(176 70% 96%);
-  --color-accent-100: hsl(176 66% 90%);
-  --color-accent-200: hsl(175 64% 80%);
-  --color-accent-300: hsl(174 60% 67%);
-  --color-accent-400: hsl(174 56% 52%);
-  --color-accent-500: hsl(174 62% 42%);
-  --color-accent-600: hsl(175 66% 34%);
-  --color-accent-700: hsl(176 62% 28%);
-  --color-accent-800: hsl(176 56% 23%);
-  --color-accent-900: hsl(177 52% 19%);
+  /* ── Accent scale (Red — for important actions and alerts) ──────
+     Supporting red for critical actions, balance with navy blue. */
+  --color-accent-50:  hsl(0 70% 97%);
+  --color-accent-100: hsl(0 70% 94%);
+  --color-accent-200: hsl(0 70% 88%);
+  --color-accent-300: hsl(0 70% 78%);
+  --color-accent-400: hsl(0 70% 65%);
+  --color-accent-500: hsl(0 70% 55%);
+  --color-accent-600: hsl(0 70% 48%);
+  --color-accent-700: hsl(0 70% 38%);
+  --color-accent-800: hsl(0 70% 28%);
+  --color-accent-900: hsl(0 70% 20%);
 
   /* ── Ink / neutral scale (text + surfaces) ───────────────────────── */
   --color-ink-50:  hsl(220 33% 98%);
@@ -51,23 +51,23 @@
   --color-ink-900: hsl(222 47% 11%);
 
   /* ── Semantic tokens (map meaning → scale; components use these) ─── */
-  --color-border: var(--color-ink-200);
-  --color-input: var(--color-ink-200);
+  --color-border: var(--color-brand-200);
+  --color-input: var(--color-brand-200);
   --color-ring: var(--color-brand-500);
-  --color-background: hsl(0 0% 100%);
+  --color-background: hsl(220 40% 98%);
   --color-foreground: var(--color-ink-900);
   --color-primary: var(--color-brand-600);
   --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: var(--color-ink-100);
-  --color-secondary-foreground: var(--color-ink-900);
-  --color-muted: var(--color-ink-100);
-  --color-muted-foreground: var(--color-ink-500);
-  --color-accent: var(--color-accent-500);
+  --color-secondary: var(--color-brand-100);
+  --color-secondary-foreground: var(--color-brand-900);
+  --color-muted: var(--color-brand-100);
+  --color-muted-foreground: var(--color-brand-700);
+  --color-accent: var(--color-accent-600);
   --color-accent-foreground: hsl(0 0% 100%);
-  --color-destructive: hsl(0 72% 51%);
+  --color-destructive: var(--color-accent-600);
   --color-destructive-foreground: hsl(0 0% 100%);
   --color-success: hsl(152 56% 36%);
-  --color-card: hsl(0 0% 100%);
+  --color-card: hsla(0 0% 100% / 0.65);
   --color-card-foreground: var(--color-ink-900);
   --color-popover: hsl(0 0% 100%);
   --color-popover-foreground: var(--color-ink-900);
@@ -284,4 +284,53 @@ select:-webkit-autofill {
     animation: none !important;
   }
   .reveal-init { opacity: 1; transform: none; }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Apple Liquid Glass Design System (Glassmorphism)
+   ────────────────────────────────────────────────────────────────── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(220, 230, 245, 0.5);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.08);
+}
+
+.glass-sidebar {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-right: 1px solid rgba(220, 230, 245, 0.6);
+  box-shadow: 2px 0 24px rgba(31, 38, 135, 0.06);
+}
+
+.glass-nav-active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(99, 102, 241, 0.95));
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-nav-hover:hover {
+  background: rgba(220, 230, 245, 0.4);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.glass-bg {
+  background: linear-gradient(135deg, 
+    hsl(220, 40%, 98%) 0%, 
+    hsl(220, 50%, 96%) 50%, 
+    hsl(220, 40%, 97%) 100%
+  );
+}
+
+.premium-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-hover:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.12), 0 0 0 1px rgba(59, 130, 246, 0.1);
+  transform: translateY(-2px);
 }

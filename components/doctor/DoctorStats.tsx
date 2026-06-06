@@ -67,39 +67,39 @@ export function DoctorStats({
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <Card>
-        <CardContent className="flex items-center gap-3 p-5">
-          <div className="rounded-lg bg-blue-100 p-3">
-            <Calendar className="h-5 w-5 text-blue-600" />
+      <div className="glass-card rounded-xl p-5 premium-hover border">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 shadow-lg shadow-brand-500/30">
+            <Calendar className="h-6 w-6 text-white" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Today&apos;s appointments</p>
-            <p className="text-2xl font-semibold">{stats.todayAppointments}</p>
+            <p className="text-xs font-medium text-brand-600">Today's appointments</p>
+            <p className="text-2xl font-bold text-brand-900">{stats.todayAppointments}</p>
           </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="flex items-center gap-3 p-5">
-          <div className="rounded-lg bg-purple-100 p-3">
-            <FileText className="h-5 w-5 text-purple-600" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Prescriptions written</p>
-            <p className="text-2xl font-semibold">{stats.totalPrescriptions}</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="flex items-center gap-3 p-5">
-          <div className="rounded-lg bg-red-100 p-3">
-            <Mic className="h-5 w-5 text-red-600" />
+        </div>
+      </div>
+      <div className="glass-card rounded-xl p-5 premium-hover border">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 shadow-lg shadow-brand-600/30">
+            <FileText className="h-6 w-6 text-white" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Hero feature</p>
-            <p className="text-sm font-medium">Speak → AI prescription</p>
+            <p className="text-xs font-medium text-brand-600">Prescriptions written</p>
+            <p className="text-2xl font-bold text-brand-900">{stats.totalPrescriptions}</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+      <div className="glass-card rounded-xl p-5 premium-hover border">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg shadow-red-500/30">
+            <Mic className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-red-600">Hero feature</p>
+            <p className="text-sm font-semibold text-brand-900">Speak → AI prescription</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

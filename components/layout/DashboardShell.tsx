@@ -4,7 +4,7 @@ import type { Role } from "./nav-config";
 
 export function DashboardShell({ role, children }: { role: Role; children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen w-full bg-slate-50">
+    <div className="flex min-h-screen w-full glass-bg">
       <Sidebar role={role} />
       <div className="flex min-h-screen flex-1 flex-col">
         <Header role={role} />

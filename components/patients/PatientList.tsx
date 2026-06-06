@@ -3,10 +3,10 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePatientViewModel } from "@/hooks/usePatientViewModel";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, Users } from "lucide-react";
+import { Search, Loader2, Users, Phone, User } from "lucide-react";
 import { getBrowserApiClient } from "@/lib/infrastructure/api/client";
+import { cn } from "@/lib/utils";
 
 export function PatientList({ basePath }: { basePath: string }) {
   const { patients, fetchPatientsList, loading } = usePatientViewModel();
@@ -62,9 +62,9 @@ export function PatientList({ basePath }: { basePath: string }) {
   return (
     <div className="space-y-4">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-500" />
         <Input
-          className="pl-9"
+          className="pl-9 glass-card border-brand-300 focus:border-brand-500 focus:ring-brand-500"
           placeholder="Search by name or phone…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -72,46 +72,111 @@ export function PatientList({ basePath }: { basePath: string }) {
       </div>
 
       {loading && patients.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-xl border bg-white py-12 shadow-sm">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/50 mb-3" />
-          <p className="text-sm text-muted-foreground">Loading patients…</p>
+        <div className="glass-card flex flex-col items-center justify-center rounded-xl border py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-brand-400 mb-3" />
+          <p className="text-sm text-brand-600">Loading patients…</p>
         </div>
       )}
 
       {!loading && patients.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Users className="h-8 w-8 text-muted-foreground/30 mb-3" />
-            <p className="text-sm text-muted-foreground">No patients found.</p>
-          </CardContent>
-        </Card>
+        <div className="glass-card flex flex-col items-center justify-center rounded-xl border py-16 text-center">
+          <Users className="h-10 w-10 text-brand-300 mb-3" />
+          <p className="text-sm text-brand-600">No patients found.</p>
+        </div>
       )}
 
-      {/* Show existing patients even while loading (for refresh) */}
+      {/* Efficient table view for thousands of patients */}
       {patients.length > 0 && (
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div className="glass-card rounded-xl border overflow-hidden">
           {loading && (
-            <div className="col-span-full mb-2">
-              <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full w-1/3 animate-pulse rounded-full bg-primary/30" />
-              </div>
+            <div className="h-1 w-full overflow-hidden bg-brand-100">
+              <div className="h-full w-1/3 animate-pulse bg-brand-400" />
             </div>
           )}
-          {patients.map((p) => (
-            <Link key={p.id} href={`${basePath}/${p.id}`}>
-              <Card className="cursor-pointer transition hover:shadow-md">
-                <CardContent className="p-4">
-                  <p className="font-medium">{p.full_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {p.phone ?? "—"} · {p.age ? `${p.age}y` : "—"} · {p.gender ?? "—"}
-                  </p>
-                  {p.allergies && p.allergies.length > 0 && (
-                    <p className="mt-1 text-xs text-yellow-700">⚠ {p.allergies.join(", ")}</p>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-brand-50 to-brand-100 border-b border-brand-200">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-brand-800 uppercase tracking-wider">
+                    Patient Name
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-brand-800 uppercase tracking-wider">
+                    Phone
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-brand-800 uppercase tracking-wider">
+                    Age
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-brand-800 uppercase tracking-wider">
+                    Gender
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-brand-800 uppercase tracking-wider">
+                    Alerts
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-100">
+                {patients.map((p) => (
+                  <tr 
+                    key={p.id}
+                    className="transition-all duration-200 hover:bg-brand-50/50 cursor-pointer group"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Link href={`${basePath}/${p.id}`} className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-600 shadow-md shadow-brand-500/30 group-hover:shadow-lg group-hover:shadow-brand-500/40 transition-shadow">
+                          <User className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-brand-900">{p.full_name}</div>
+                          {p.email && (
+                            <div className="text-xs text-brand-600">{p.email}</div>
+                          )}
+                        </div>
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Link href={`${basePath}/${p.id}`} className="flex items-center gap-2 text-sm text-brand-700">
+                        <Phone className="h-4 w-4 text-brand-500" />
+                        {p.phone ?? "—"}
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Link href={`${basePath}/${p.id}`} className="text-sm text-brand-700">
+                        {p.age ? `${p.age}y` : "—"}
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Link href={`${basePath}/${p.id}`}>
+                        <span className={cn(
+                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                          p.gender === "male" && "bg-brand-100 text-brand-700",
+                          p.gender === "female" && "bg-red-100 text-red-700",
+                          !p.gender && "bg-brand-50 text-brand-600"
+                        )}>
+                          {p.gender ?? "—"}
+                        </span>
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Link href={`${basePath}/${p.id}`}>
+                        {p.allergies && p.allergies.length > 0 ? (
+                          <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+                            ⚠ {p.allergies.join(", ")}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-brand-400">—</span>
+                        )}
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-brand-200 bg-brand-50/50 px-6 py-3">
+            <p className="text-xs text-brand-600">
+              Showing {patients.length} patient{patients.length !== 1 ? "s" : ""}
+            </p>
+          </div>
         </div>
       )}
     </div>

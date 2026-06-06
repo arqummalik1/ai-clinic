@@ -11,12 +11,12 @@ export function Sidebar({ role }: { role: Role }) {
   const items = NAV[role] ?? [];
 
   return (
-    <aside className="hidden md:flex w-60 flex-col border-r bg-white">
-      <div className="flex h-16 items-center gap-2 border-b px-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+    <aside className="hidden md:flex w-60 flex-col glass-sidebar">
+      <div className="flex h-16 items-center gap-2 border-b border-brand-200/50 px-5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-md shadow-brand-500/30">
           <Stethoscope className="h-4 w-4" />
         </div>
-        <span className="font-semibold tracking-tight">MediSync</span>
+        <span className="font-semibold tracking-tight bg-gradient-to-r from-brand-700 to-brand-900 bg-clip-text text-transparent">MediSync</span>
       </div>
       <nav className="flex-1 space-y-1 p-3">
         {items.map((item) => {
@@ -27,8 +27,10 @@ export function Sidebar({ role }: { role: Role }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                active ? "bg-primary text-white font-semibold" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-300",
+                active 
+                  ? "glass-nav-active text-white font-semibold" 
+                  : "text-brand-700 glass-nav-hover border border-transparent",
               )}
             >
               <Icon className="h-4 w-4" />
@@ -37,7 +39,7 @@ export function Sidebar({ role }: { role: Role }) {
           );
         })}
       </nav>
-      <div className="border-t p-3 text-xs text-muted-foreground">
+      <div className="border-t border-brand-200/50 p-3 text-xs text-brand-600 font-medium">
         <UserCog className="mr-1 inline h-3 w-3" /> {role.replace("_", " ")}
       </div>
     </aside>
