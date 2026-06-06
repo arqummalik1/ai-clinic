@@ -15,8 +15,14 @@ import { Loader2, CheckCircle2, AlertCircle, UserPlus } from "lucide-react";
 
 type SubmitState = "idle" | "submitting" | "success" | "error";
 
-export function PatientForm({ redirectAfter = PATHS.RECEPTION_PATIENTS }: { redirectAfter?: string }) {
+export function PatientForm({ redirectAfter = PATHS.RECEPTION_PATIENTS, onSuccess }: { 
+  redirectAfter?: string; 
+  onSuccess?: (patientId: string) => void;
+}) {
   const router = useRouter();
+  const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const redirectTo = params?.get('redirectTo');
+  
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
@@ -100,7 +106,18 @@ export function PatientForm({ redirectAfter = PATHS.RECEPTION_PATIENTS }: { redi
 
     setSubmitState("success");
     toast.success("Patient created successfully");
-    setTimeout(() => router.push(redirectAfter), 800);
+    
+    // Handle callback if provided
+    if (onSuccess && result.patientId) {
+      onSuccess(result.patientId);
+    }
+    
+    // Handle special redirect for appointment booking
+    if (redirectTo === 'appointment-booking' && result.patientId) {
+      setTimeout(() => router.push(`/reception/appointments/new?patientId=${result.patientId}`), 800);
+    } else {
+      setTimeout(() => router.push(redirectAfter), 800);
+    }
   };
 
   if (submitState === "submitting") {

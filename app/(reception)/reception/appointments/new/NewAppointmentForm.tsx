@@ -6,15 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { createAppointmentAction } from "@/app/actions/appointments";
-import { createPatientAction } from "@/app/actions/patients";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { todayISO } from "@/lib/utils";
-import { AlertTriangle, Loader2, Plus, UserPlus } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertTriangle, Loader2, UserPlus, ArrowLeft } from "lucide-react";
 
 interface DoctorOpt { id: string; full_name: string; consultation_fee: number }
 interface PatientOpt { id: string; full_name: string; phone: string | null }
@@ -35,18 +33,6 @@ export function NewAppointmentForm() {
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "upi" | "card" | "insurance">("cash");
   const [search, setSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  // New patient creation state
-  const [showNewPatientDialog, setShowNewPatientDialog] = useState(false);
-  const [creatingPatient, setCreatingPatient] = useState(false);
-  const [newPatient, setNewPatient] = useState({
-    full_name: "",
-    phone: "",
-    email: "",
-    age: "",
-    gender: "" as "" | "male" | "female" | "other",
-    address: "",
-  });
 
   useEffect(() => {
     const supabase = createClient();
@@ -84,56 +70,6 @@ export function NewAppointmentForm() {
     setDoctorId(id);
     const d = doctors.find((x) => x.id === id);
     if (d) setFee(d.consultation_fee);
-  };
-
-  const handleCreatePatient = async () => {
-    if (!newPatient.full_name.trim()) {
-      toast.error("Patient name is required");
-      return;
-    }
-    if (!newPatient.phone.trim()) {
-      toast.error("Phone number is required");
-      return;
-    }
-
-    setCreatingPatient(true);
-    const result = await createPatientAction({
-      full_name: newPatient.full_name.trim(),
-      phone: newPatient.phone.trim(),
-      email: newPatient.email.trim() || null,
-      age: newPatient.age ? parseInt(newPatient.age) : null,
-      gender: newPatient.gender || null,
-      address: newPatient.address.trim() || null,
-    });
-    setCreatingPatient(false);
-
-    if (!result.success) {
-      toast.error(result.error ?? "Failed to create patient");
-      return;
-    }
-
-    toast.success("Patient created successfully");
-    setPatientId(result.patientId!);
-    setShowNewPatientDialog(false);
-    
-    // Reset form
-    setNewPatient({
-      full_name: "",
-      phone: "",
-      email: "",
-      age: "",
-      gender: "",
-      address: "",
-    });
-
-    // Refresh patient list
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("patients")
-      .select("id, full_name, phone")
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (data) setPatients(data as PatientOpt[]);
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -181,193 +117,96 @@ export function NewAppointmentForm() {
   const canSubmit = !!doctorId && !!patientId && !submitting;
 
   return (
-    <>
-      <form onSubmit={submit} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Patient</CardTitle>
+    <form onSubmit={submit} className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Patient</CardTitle>
+            <Link href="/reception/patients/new?redirectTo=appointment-booking">
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => setShowNewPatientDialog(true)}
                 className="gap-2"
               >
                 <UserPlus className="h-4 w-4" />
-                New patient
+                Register new patient
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Input placeholder="Search by name or phone…" value={search} onChange={(e) => setSearch(e.target.value)} />
-            <Select value={patientId} onChange={(e) => setPatientId(e.target.value)} required>
-              <option value="">Select patient…</option>
-              {patients.map((p) => (
-                <option key={p.id} value={p.id}>{p.full_name} {p.phone ? `· ${p.phone}` : ""}</option>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Input placeholder="Search by name or phone…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Select value={patientId} onChange={(e) => setPatientId(e.target.value)} required>
+            <option value="">Select patient…</option>
+            {patients.map((p) => (
+              <option key={p.id} value={p.id}>{p.full_name} {p.phone ? `· ${p.phone}` : ""}</option>
+            ))}
+          </Select>
+          {!patientId && patients.length === 0 && !search && (
+            <p className="text-sm text-muted-foreground">
+              No patients found. Click "Register new patient" to add one.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Visit details</CardTitle></CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Doctor</Label>
+            <Select value={doctorId} onChange={(e) => onDoctorChange(e.target.value)} required>
+              {doctors.map((d) => (
+                <option key={d.id} value={d.id}>{d.full_name}</option>
               ))}
             </Select>
-            {!patientId && patients.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No patients found. Click "New patient" to add one.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+          <div className="space-y-2">
+            <Label>Date</Label>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Consultation fee (₹)</Label>
+            <Input type="number" min={0} step={50} value={fee} onChange={(e) => setFee(Number(e.target.value))} />
+          </div>
+          <div className="space-y-2">
+            <Label>Payment status</Label>
+            <Select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value as "paid" | "pending")}>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+            </Select>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Payment method</Label>
+            <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as "cash" | "upi" | "card" | "insurance")}>
+              <option value="cash">Cash</option>
+              <option value="upi">UPI</option>
+              <option value="card">Card</option>
+              <option value="insurance">Insurance</option>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader><CardTitle>Visit</CardTitle></CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Doctor</Label>
-              <Select value={doctorId} onChange={(e) => onDoctorChange(e.target.value)} required>
-                {doctors.map((d) => (
-                  <option key={d.id} value={d.id}>{d.full_name}</option>
-                ))}
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label>Fee (₹)</Label>
-              <Input type="number" min={0} step={50} value={fee} onChange={(e) => setFee(Number(e.target.value))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Payment status</Label>
-              <Select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value as "paid" | "pending")}>
-                <option value="paid">Paid</option>
-                <option value="pending">Pending</option>
-              </Select>
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label>Payment method</Label>
-              <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as "cash" | "upi" | "card" | "insurance")}>
-                <option value="cash">Cash</option>
-                <option value="upi">UPI</option>
-                <option value="card">Card</option>
-                <option value="insurance">Insurance</option>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Button type="submit" disabled={!canSubmit} className="w-full gap-2">
+      <div className="flex gap-3">
+        <Link href="/reception/appointments" className="flex-1">
+          <Button type="button" variant="outline" className="w-full gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Cancel
+          </Button>
+        </Link>
+        <Button type="submit" disabled={!canSubmit} className="flex-1 gap-2">
           {submitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
               Creating…
             </>
-          ) : !patientId ? (
-            "Pick a patient first"
           ) : (
             "Create appointment"
           )}
         </Button>
-      </form>
-
-      {/* New Patient Dialog */}
-      <Dialog open={showNewPatientDialog} onOpenChange={setShowNewPatientDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add new patient</DialogTitle>
-            <DialogDescription>
-              Create a patient record and book appointment in one flow
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Full name *</Label>
-              <Input
-                value={newPatient.full_name}
-                onChange={(e) => setNewPatient({ ...newPatient, full_name: e.target.value })}
-                placeholder="Enter patient name"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Phone *</Label>
-              <Input
-                value={newPatient.phone}
-                onChange={(e) => setNewPatient({ ...newPatient, phone: e.target.value })}
-                placeholder="Enter phone number"
-                required
-              />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Age</Label>
-                <Input
-                  type="number"
-                  value={newPatient.age}
-                  onChange={(e) => setNewPatient({ ...newPatient, age: e.target.value })}
-                  placeholder="Age"
-                  min={0}
-                  max={150}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Gender</Label>
-                <Select
-                  value={newPatient.gender}
-                  onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value as "" | "male" | "female" | "other" })}
-                >
-                  <option value="">Select…</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={newPatient.email}
-                onChange={(e) => setNewPatient({ ...newPatient, email: e.target.value })}
-                placeholder="patient@example.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Address</Label>
-              <Input
-                value={newPatient.address}
-                onChange={(e) => setNewPatient({ ...newPatient, address: e.target.value })}
-                placeholder="Enter address"
-              />
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowNewPatientDialog(false)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={handleCreatePatient}
-                disabled={creatingPatient}
-                className="flex-1 gap-2"
-              >
-                {creatingPatient ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Creating…
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4" />
-                    Create patient
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+      </div>
+    </form>
   );
 }
