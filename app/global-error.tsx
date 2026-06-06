@@ -7,7 +7,6 @@ import { AlertTriangle } from "lucide-react";
  * Must render its own <html>/<body> because it replaces the whole document.
  */
 export default function GlobalError({
-  error,
   reset,
 }: {
   error: Error & { digest?: string };

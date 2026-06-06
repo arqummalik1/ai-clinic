@@ -9,6 +9,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Exclude static assets and the public SEO files (robots, sitemap,
+    // manifest) so crawlers reach them directly instead of being bounced
+    // to /login by the auth check.
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|opengraph-image|twitter-image|og.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

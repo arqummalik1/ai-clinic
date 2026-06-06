@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { transcribeAudio } from "@/lib/ai/providers/groq";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -44,6 +45,10 @@ export async function POST(req: NextRequest) {
       console.warn("[transcribe] No authenticated user (auth cookie not received).");
       return NextResponse.json({ error: "Unauthorized — please sign in again." }, { status: 401 });
     }
+
+    // Rate limit: 20 transcriptions/min per user (best-effort, per-instance).
+    const rl = checkRateLimit(`ai:transcribe:${user.id}`, 20, 60_000);
+    if (!rl.allowed) return rateLimitResponse(rl);
 
     const formData = await req.formData();
     const audioFile = formData.get("audio") as File | null;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generatePrescription } from "@/lib/ai";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -44,6 +45,10 @@ export async function POST(req: NextRequest) {
       console.warn("[prescription] No authenticated user.");
       return NextResponse.json({ error: "Unauthorized — please sign in again." }, { status: 401 });
     }
+
+    // Rate limit: 30 structuring calls/min per user (live dictation can be chatty).
+    const rl = checkRateLimit(`ai:prescription:${user.id}`, 30, 60_000);
+    if (!rl.allowed) return rateLimitResponse(rl);
 
     const body = await req.json();
     const { transcription, patientAge, patientGender, allergies, lastDiagnosis, existingConditions, language } = body;

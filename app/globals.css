@@ -1,47 +1,169 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
+/* ════════════════════════════════════════════════════════════════════
+   MEDISYNC DESIGN SYSTEM — SINGLE SOURCE OF TRUTH
+   ────────────────────────────────────────────────────────────────────
+   Change the brand here and the entire product (app + marketing site)
+   updates. Every color, radius, and type token below is exposed to
+   Tailwind, so you get `bg-brand-600`, `text-ink-500`, `font-display`,
+   etc. everywhere. Do not hardcode hex/hsl colors in components.
+   ════════════════════════════════════════════════════════════════════ */
+
 @theme {
-  --color-border: hsl(220 13% 91%);
-  --color-input: hsl(220 13% 91%);
-  --color-ring: hsl(224 71% 56%);
+  /* ── Brand scale (the one knob that recolors the product) ──────────
+     A calm, clinical indigo-blue — trust + technology. */
+  --color-brand-50:  hsl(223 100% 97%);
+  --color-brand-100: hsl(223 96% 94%);
+  --color-brand-200: hsl(223 94% 87%);
+  --color-brand-300: hsl(223 90% 78%);
+  --color-brand-400: hsl(224 84% 67%);
+  --color-brand-500: hsl(224 76% 58%);
+  --color-brand-600: hsl(224 72% 48%);
+  --color-brand-700: hsl(225 70% 40%);
+  --color-brand-800: hsl(226 64% 33%);
+  --color-brand-900: hsl(227 58% 27%);
+  --color-brand-950: hsl(229 56% 17%);
+
+  /* ── Accent scale (sparingly — denotes "AI / voice" moments) ──────
+     A supporting teal that reads as vitality without going rainbow. */
+  --color-accent-50:  hsl(176 70% 96%);
+  --color-accent-100: hsl(176 66% 90%);
+  --color-accent-200: hsl(175 64% 80%);
+  --color-accent-300: hsl(174 60% 67%);
+  --color-accent-400: hsl(174 56% 52%);
+  --color-accent-500: hsl(174 62% 42%);
+  --color-accent-600: hsl(175 66% 34%);
+  --color-accent-700: hsl(176 62% 28%);
+  --color-accent-800: hsl(176 56% 23%);
+  --color-accent-900: hsl(177 52% 19%);
+
+  /* ── Ink / neutral scale (text + surfaces) ───────────────────────── */
+  --color-ink-50:  hsl(220 33% 98%);
+  --color-ink-100: hsl(220 26% 96%);
+  --color-ink-200: hsl(220 18% 91%);
+  --color-ink-300: hsl(218 15% 82%);
+  --color-ink-400: hsl(218 12% 62%);
+  --color-ink-500: hsl(219 11% 46%);
+  --color-ink-600: hsl(220 14% 36%);
+  --color-ink-700: hsl(221 22% 26%);
+  --color-ink-800: hsl(222 31% 17%);
+  --color-ink-900: hsl(222 47% 11%);
+
+  /* ── Semantic tokens (map meaning → scale; components use these) ─── */
+  --color-border: var(--color-ink-200);
+  --color-input: var(--color-ink-200);
+  --color-ring: var(--color-brand-500);
   --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222 47% 11%);
-  --color-primary: hsl(224 71% 56%);
+  --color-foreground: var(--color-ink-900);
+  --color-primary: var(--color-brand-600);
   --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(220 14% 96%);
-  --color-secondary-foreground: hsl(222 47% 11%);
-  --color-muted: hsl(220 14% 96%);
-  --color-muted-foreground: hsl(220 9% 46%);
-  --color-accent: hsl(220 14% 96%);
-  --color-accent-foreground: hsl(222 47% 11%);
-  --color-destructive: hsl(0 84% 60%);
+  --color-secondary: var(--color-ink-100);
+  --color-secondary-foreground: var(--color-ink-900);
+  --color-muted: var(--color-ink-100);
+  --color-muted-foreground: var(--color-ink-500);
+  --color-accent: var(--color-accent-500);
+  --color-accent-foreground: hsl(0 0% 100%);
+  --color-destructive: hsl(0 72% 51%);
   --color-destructive-foreground: hsl(0 0% 100%);
+  --color-success: hsl(152 56% 36%);
   --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222 47% 11%);
+  --color-card-foreground: var(--color-ink-900);
   --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222 47% 11%);
+  --color-popover-foreground: var(--color-ink-900);
+
+  /* ── Radius ──────────────────────────────────────────────────────── */
   --radius: 0.625rem;
+
+  /* ── Typography ──────────────────────────────────────────────────── */
   --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Fluid type scale for marketing surfaces */
+  --text-display: clamp(2.75rem, 1.6rem + 4.6vw, 4.5rem);
+  --text-display--line-height: 1.04;
+  --text-display--letter-spacing: -0.03em;
+  --text-h2: clamp(1.875rem, 1.2rem + 2.4vw, 2.75rem);
+  --text-h2--line-height: 1.12;
+  --text-h2--letter-spacing: -0.02em;
+  --text-lead: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem);
+  --text-lead--line-height: 1.6;
 }
 
+/* ──────────────────────────────────────────────────────────────────
+   Base layer
+   ────────────────────────────────────────────────────────────────── */
 * {
   border-color: var(--color-border);
 }
 
-html, body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-feature-settings: "rlig" 1, "calt" 1;
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
-/* ──────────────────────────────────────────────────────────────
+html,
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Reusable typographic primitives (global — used across the site)
+   ────────────────────────────────────────────────────────────────── */
+@layer components {
+  .heading-display {
+    font-family: var(--font-display);
+    font-size: var(--text-display);
+    line-height: var(--text-display--line-height);
+    letter-spacing: var(--text-display--letter-spacing);
+    font-weight: 700;
+  }
+  .heading-section {
+    font-family: var(--font-display);
+    font-size: var(--text-h2);
+    line-height: var(--text-h2--line-height);
+    letter-spacing: var(--text-h2--letter-spacing);
+    font-weight: 700;
+  }
+  .text-lead {
+    font-size: var(--text-lead);
+    line-height: var(--text-lead--line-height);
+  }
+  /* Eyebrow / kicker label used above section headings */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-brand-700);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
    WCAG contrast safeguards for browser-native states.
-   The default UA highlight paints a deep-blue background while
-   leaving text dark, which fails contrast. Force white text on
-   every blue/primary highlight (selection, <option>, autofill).
-   ────────────────────────────────────────────────────────────── */
+   ────────────────────────────────────────────────────────────────── */
 ::selection {
   background-color: var(--color-primary);
   color: #fff;
@@ -51,7 +173,6 @@ html, body {
   color: #fff;
 }
 
-/* Native <select> option highlight (where the browser allows styling) */
 option:checked,
 option:hover,
 option:focus {
@@ -59,8 +180,6 @@ option:focus {
   color: #fff;
 }
 
-/* Chrome/Safari autofill: keep readable dark text instead of the
-   washed-out blue overlay that can clash with our inputs. */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
@@ -71,6 +190,9 @@ select:-webkit-autofill {
   caret-color: var(--color-foreground);
 }
 
+/* ──────────────────────────────────────────────────────────────────
+   Voice recording pulse (used by the live consult UI)
+   ────────────────────────────────────────────────────────────────── */
 @keyframes pulse-ring {
   0% { transform: scale(1); opacity: 1; }
   100% { transform: scale(2.4); opacity: 0; }
@@ -81,6 +203,15 @@ select:-webkit-autofill {
   position: absolute;
   inset: 0;
   border-radius: 9999px;
-  border: 3px solid hsl(0 84% 60%);
+  border: 3px solid var(--color-destructive);
   animation: pulse-ring 1.4s cubic-bezier(0.215, 0.610, 0.355, 1) infinite;
+}
+
+/* Subtle entrance used on marketing sections */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.rise-in {
+  animation: rise-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

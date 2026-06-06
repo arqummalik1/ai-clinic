@@ -157,8 +157,9 @@ export function PatientForm({ redirectAfter = PATHS.RECEPTION_PATIENTS }: { redi
         <CardHeader><CardTitle>Patient details</CardTitle></CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label>Full name *</Label>
+            <Label htmlFor="full_name">Full name *</Label>
             <Input
+              id="full_name"
               value={form.full_name}
               onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               required
@@ -166,8 +167,9 @@ export function PatientForm({ redirectAfter = PATHS.RECEPTION_PATIENTS }: { redi
             />
           </div>
           <div className="space-y-2">
-            <Label>Phone *</Label>
+            <Label htmlFor="phone">Phone *</Label>
             <Input
+              id="phone"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               required

@@ -60,3 +60,10 @@ non-negotiable.
 - Loading / empty / error states handled.
 - Security/tenant checks in place where relevant.
 - ROADMAP.md status tracker updated.
+
+## Communication rules (token-economy — STRICT)
+- Output only what is essential. Do not burn credits/tokens on long explanations.
+- Always reply in short bullet points, plain English, beginner-friendly.
+- Give only the action needed (e.g., "put your API key in `.env.local`") — not the backstory.
+- No long summaries, no recaps, no restating what I already know.
+- Only explain more if I explicitly ask.
