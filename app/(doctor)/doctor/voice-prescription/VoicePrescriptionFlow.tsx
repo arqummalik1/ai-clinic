@@ -243,6 +243,19 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
 
   const [showSettings, setShowSettings] = useState(false);
 
+  // After-save behaviour: show preview (default), open the PDF to print, or just save.
+  const [printMode, setPrintMode] = useState<"preview" | "print" | "save">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("voice_rx_print_mode");
+      if (saved === "preview" || saved === "print" || saved === "save") return saved;
+    }
+    return "preview";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("voice_rx_print_mode", printMode);
+  }, [printMode]);
+
   // Save settings change to localStorage
   useEffect(() => {
     localStorage.setItem("voice_rx_language", language);
@@ -910,9 +923,17 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
     }
 
     if (result.pdfUrl) {
-      // Show the PDF inline (no popup, no surprise auto-print). The doctor
-      // confirms visually, prints/downloads on demand, then proceeds.
-      setPdfPreviewUrl(result.pdfUrl);
+      if (printMode === "save") {
+        // Straight to the list — no preview, no print.
+        setTimeout(() => router.push("/doctor/prescriptions"), 600);
+      } else if (printMode === "print") {
+        // Open the PDF in a new tab so the doctor can print from the viewer.
+        window.open(result.pdfUrl, "_blank");
+        setTimeout(() => router.push("/doctor/prescriptions"), 600);
+      } else {
+        // Default: show the in-page preview.
+        setPdfPreviewUrl(result.pdfUrl);
+      }
     } else {
       setTimeout(() => router.push("/doctor/prescriptions"), 800);
     }
@@ -1172,6 +1193,7 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
                       setMicMode(DEFAULT_MIC_MODE);
                       setAiPauseDuration(DEFAULT_AI_PAUSE_SEC);
                       setMicAutoStopDuration(DEFAULT_MIC_STOP_SEC);
+                      setPrintMode("preview");
                       toast.success("Settings reset to defaults");
                     }}
                     className="text-xs h-7 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
@@ -1259,6 +1281,22 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
                     </div>
                     <p className="text-[10px] text-muted-foreground leading-normal">
                       Seconds of silence before turning off the mic (Intelligent mode only).
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-slate-600">After saving</Label>
+                    <Select
+                      value={printMode}
+                      onChange={(e) => setPrintMode(e.target.value as "preview" | "print" | "save")}
+                      className="text-xs"
+                    >
+                      <option value="preview">Show preview</option>
+                      <option value="print">Open PDF to print</option>
+                      <option value="save">Just save</option>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground leading-normal">
+                      What happens after you tap Save &amp; Dispatch.
                     </p>
                   </div>
                 </div>

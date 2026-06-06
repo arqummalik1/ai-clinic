@@ -1,7 +1,7 @@
 "use server";
 
 import { after } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { generatePrescriptionPDF, type PrescriptionPDFData, type PrescriptionImageAsset } from "@/lib/pdf/generatePrescriptionPDF";
 import { sendNotification, pickChannel } from "@/lib/notifications";
 import type { StructuredPrescription } from "@/lib/ai";
@@ -87,8 +87,21 @@ export async function saveAndShipPrescription(args: SaveArgs): Promise<SaveResul
   // Pre-flight: make sure the `prescriptions` storage bucket exists. If it
   // doesn't, fail BEFORE inserting the prescription row so we don't leave a
   // dangling row without a PDF.
+  // PDF Storage runs through the service-role client so the upload never fails
+  // on a missing/mis-set Storage RLS policy. It's safe: this is a server action,
+  // the user is already authenticated, and the path is scoped to their clinic.
+  // Falls back to the user client if the service key isn't configured.
+  const storage = (() => {
+    try {
+      return createServiceRoleClient();
+    } catch {
+      console.warn("[save] SUPABASE_SERVICE_ROLE_KEY missing — using user client for Storage.");
+      return supabase;
+    }
+  })();
+
   {
-    const probe = await supabase.storage.from("prescriptions").list("", { limit: 1 });
+    const probe = await storage.storage.from("prescriptions").list("", { limit: 1 });
     if (probe.error) {
       const msg = probe.error.message?.toLowerCase() ?? "";
       if (msg.includes("not found") || msg.includes("bucket")) {
@@ -208,7 +221,7 @@ export async function saveAndShipPrescription(args: SaveArgs): Promise<SaveResul
   const pdfArrayBuffer = await pdfBlob.arrayBuffer();
   const pdfPath = `${doctor.clinic_id}/${rxRow.id}.pdf`;
 
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadError } = await storage.storage
     .from("prescriptions")
     .upload(pdfPath, pdfArrayBuffer, { contentType: "application/pdf", upsert: true });
   if (uploadError) {
@@ -217,7 +230,7 @@ export async function saveAndShipPrescription(args: SaveArgs): Promise<SaveResul
     return { error: `PDF upload failed: ${uploadError.message}` };
   }
 
-  const { data: signed } = await supabase.storage
+  const { data: signed } = await storage.storage
     .from("prescriptions")
     .createSignedUrl(pdfPath, 60 * 60 * 24 * 7);
   const pdfUrl = signed?.signedUrl;
