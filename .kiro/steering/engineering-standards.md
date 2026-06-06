@@ -63,7 +63,19 @@ non-negotiable.
 
 ## Communication rules (token-economy — STRICT)
 - Output only what is essential. Do not burn credits/tokens on long explanations.
-- Always reply in short bullet points, plain English, beginner-friendly.
 - Give only the action needed (e.g., "put your API key in `.env.local`") — not the backstory.
 - No long summaries, no recaps, no restating what I already know.
 - Only explain more if I explicitly ask.
+
+## Git / push rules (MANDATORY)
+- **Never push code automatically.** Always finish the work, then **ask for explicit permission** before `git push`.
+- Committing locally is fine; **pushing to GitHub requires the user to say so**.
+- When the user does say "push", do it immediately and fast.
+
+## Output formatting (MANDATORY)
+- **Always reply in bullet points** — plain English, beginner-friendly, concise.
+- **Bold** every key term, label, and anything important. *Italicize* values/states worth highlighting.
+- When explaining a problem, use **bold section labels** — at minimum **Root cause** and **Fix**.
+- Each section's details go in bullets underneath its bold label. No long paragraphs.
+- Keep it filtered to the requirement only — cut anything the user didn't ask for.
+- A short closing summary is fine, but it must also be bulleted and bold-highlighted.
