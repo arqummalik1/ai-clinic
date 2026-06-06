@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRealtimeAppointments } from "@/hooks/useRealtime";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,12 +32,25 @@ export function AppointmentQueue({
   actionsScope?: ActionsScope;
 }) {
   const { appointments, refresh } = useRealtimeAppointments(doctorId);
+  const router = useRouter();
 
   const updateStatus = async (id: string, status: string) => {
     const supabase = createClient();
     const { error } = await supabase.from("appointments").update({ status }).eq("id", id);
     if (error) toast.error(error.message);
     else refresh();
+  };
+
+  // One-tap "Start consult": mark in-progress AND open the voice flow, so the
+  // doctor goes from queue → dictating in a single action (no Call in → Prescribe).
+  const startConsult = async (id: string, patientId: string) => {
+    const supabase = createClient();
+    const { error } = await supabase.from("appointments").update({ status: "in_progress" }).eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    router.push(`/doctor/voice-prescription?patientId=${patientId}&appointmentId=${id}`);
   };
 
   const markFeePaid = async (id: string) => {
@@ -97,9 +111,19 @@ export function AppointmentQueue({
 
               {/* Doctor-scope actions */}
               {showActions && actionsScope === "doctor" && apt.status === "waiting" && (
-                <Button size="sm" variant="outline" onClick={() => updateStatus(apt.id, "in_progress")}>
-                  Call in
-                </Button>
+                showVoiceCta ? (
+                  <Button
+                    size="sm"
+                    className="bg-red-500 hover:bg-red-600"
+                    onClick={() => startConsult(apt.id, apt.patient_id)}
+                  >
+                    <Mic className="mr-1 h-4 w-4" /> Start consult
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={() => updateStatus(apt.id, "in_progress")}>
+                    Call in
+                  </Button>
+                )
               )}
               {showActions && actionsScope === "doctor" && apt.status === "in_progress" && (
                 <>

@@ -215,3 +215,73 @@ select:-webkit-autofill {
 .rise-in {
   animation: rise-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* ──────────────────────────────────────────────────────────────────
+   Marketing / hero animations
+   ────────────────────────────────────────────────────────────────── */
+
+/* Live voice equalizer bars */
+@keyframes equalize {
+  0%, 100% { transform: scaleY(0.22); }
+  50%      { transform: scaleY(1); }
+}
+.eq-bar {
+  transform-origin: bottom;
+  animation: equalize 0.9s ease-in-out infinite;
+}
+
+/* Blinking caret for the "typing" transcript */
+@keyframes caret-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+.caret-blink { animation: caret-blink 1s step-end infinite; }
+
+/* Pop-in for dispatch chips / filled rows */
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.pop-in { animation: pop-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Slow floating orbs behind the hero */
+@keyframes float-orb {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(0, -24px) scale(1.06); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+.float-orb       { animation: float-orb 9s ease-in-out infinite; }
+.float-orb-slow  { animation: float-orb 14s ease-in-out infinite; }
+
+/* Soft ping ring used on "live" indicators */
+@keyframes live-ping {
+  0%   { transform: scale(1); opacity: 0.7; }
+  80%, 100% { transform: scale(2.4); opacity: 0; }
+}
+.live-ping::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: live-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Scroll-reveal (toggled by the <Reveal> client component) */
+.reveal-init {
+  opacity: 0;
+  transform: translateY(18px);
+}
+.reveal-in {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-bar, .caret-blink, .pop-in, .float-orb, .float-orb-slow, .live-ping::before {
+    animation: none !important;
+  }
+  .reveal-init { opacity: 1; transform: none; }
+}
