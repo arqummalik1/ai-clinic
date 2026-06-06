@@ -243,13 +243,13 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
 
   const [showSettings, setShowSettings] = useState(false);
 
-  // After-save behaviour: show preview (default), open the PDF to print, or just save.
+  // After-save behaviour: open in background tab (default/recommended), show preview, or just save.
   const [printMode, setPrintMode] = useState<"preview" | "print" | "save">(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("voice_rx_print_mode");
       if (saved === "preview" || saved === "print" || saved === "save") return saved;
     }
-    return "preview";
+    return "print"; // Default to opening in new tab for fastest workflow
   });
 
   useEffect(() => {
@@ -895,7 +895,8 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
     setSaving(true);
     await persistEmailIfNeeded();
 
-    const result = await saveAndShipPrescription({
+    // Start the save operation
+    const savePromise = saveAndShipPrescription({
       patientId: patient.id,
       appointmentId: selectedAppointmentId,
       prescription: rx,
@@ -905,38 +906,58 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
       sendEmail,
       sendWhatsApp,
     });
-    setSaving(false);
 
-    if (result.error) {
-      toast.error(result.error);
-      return;
-    }
+    // Show immediate feedback to the doctor
+    toast.loading("Generating prescription PDF...", { id: "pdf-generation" });
 
-    if (result.emailQueued && result.whatsAppQueued) {
-      toast.success("Prescription saved — emailing & WhatsApping to patient");
-    } else if (result.emailQueued) {
-      toast.success("Prescription saved — emailing to patient");
-    } else if (result.whatsAppQueued) {
-      toast.success("Prescription saved — sending on WhatsApp");
-    } else {
-      toast.success("Prescription saved successfully");
-    }
+    // Handle the result asynchronously
+    savePromise.then((result) => {
+      setSaving(false);
+      toast.dismiss("pdf-generation");
 
-    if (result.pdfUrl) {
-      if (printMode === "save") {
-        // Straight to the list — no preview, no print.
-        setTimeout(() => router.push("/doctor/prescriptions"), 600);
-      } else if (printMode === "print") {
-        // Open the PDF in a new tab so the doctor can print from the viewer.
-        window.open(result.pdfUrl, "_blank");
-        setTimeout(() => router.push("/doctor/prescriptions"), 600);
-      } else {
-        // Default: show the in-page preview.
-        setPdfPreviewUrl(result.pdfUrl);
+      if (result.error) {
+        toast.error(result.error);
+        return;
       }
-    } else {
-      setTimeout(() => router.push("/doctor/prescriptions"), 800);
-    }
+
+      // Show success message
+      if (result.emailQueued && result.whatsAppQueued) {
+        toast.success("Prescription saved — emailing & WhatsApping to patient");
+      } else if (result.emailQueued) {
+        toast.success("Prescription saved — emailing to patient");
+      } else if (result.whatsAppQueued) {
+        toast.success("Prescription saved — sending on WhatsApp");
+      } else {
+        toast.success("Prescription saved successfully");
+      }
+
+      // Handle PDF based on print mode
+      if (result.pdfUrl) {
+        if (printMode === "save") {
+          // Straight to the list — no preview, no print.
+          router.push("/doctor/prescriptions");
+        } else if (printMode === "print") {
+          // Open the PDF in a background tab (not focused) so doctor can continue working
+          const pdfWindow = window.open(result.pdfUrl, "_blank");
+          // Prevent the new tab from stealing focus
+          if (pdfWindow) {
+            pdfWindow.blur();
+            window.focus();
+          }
+          // Navigate to prescriptions list
+          setTimeout(() => router.push("/doctor/prescriptions"), 300);
+        } else {
+          // Default: show the in-page preview.
+          setPdfPreviewUrl(result.pdfUrl);
+        }
+      } else {
+        router.push("/doctor/prescriptions");
+      }
+    }).catch((err) => {
+      setSaving(false);
+      toast.dismiss("pdf-generation");
+      toast.error("Failed to save prescription: " + (err.message || "Unknown error"));
+    });
   };
 
   if (view === "error") {
@@ -1193,7 +1214,7 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
                       setMicMode(DEFAULT_MIC_MODE);
                       setAiPauseDuration(DEFAULT_AI_PAUSE_SEC);
                       setMicAutoStopDuration(DEFAULT_MIC_STOP_SEC);
-                      setPrintMode("preview");
+                      setPrintMode("print"); // Default to fastest workflow
                       toast.success("Settings reset to defaults");
                     }}
                     className="text-xs h-7 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
@@ -1285,18 +1306,18 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold text-slate-600">After saving</Label>
+                    <Label className="text-xs font-semibold text-slate-600">After saving prescription</Label>
                     <Select
                       value={printMode}
                       onChange={(e) => setPrintMode(e.target.value as "preview" | "print" | "save")}
                       className="text-xs"
                     >
-                      <option value="preview">Show preview</option>
-                      <option value="print">Open PDF to print</option>
-                      <option value="save">Just save</option>
+                      <option value="print">Open in new tab (Recommended — fastest workflow)</option>
+                      <option value="save">Just save & continue</option>
+                      <option value="preview">Show preview dialog</option>
                     </Select>
                     <p className="text-[10px] text-muted-foreground leading-normal">
-                      What happens after you tap Save &amp; Dispatch.
+                      "Open in new tab" opens the PDF in background so you can immediately continue with the next patient.
                     </p>
                   </div>
                 </div>
