@@ -33,7 +33,7 @@ interface Props {
 
 // Borderless, document-style input that reveals an underline on hover/focus.
 const inkInput =
-  "w-full bg-transparent px-1 py-0.5 text-slate-900 outline-none border-b border-dashed border-transparent hover:border-slate-300 focus:border-indigo-400 transition-colors";
+  "w-full bg-transparent px-1 py-0.5 text-slate-900 outline-none border-b border-dashed border-transparent hover:border-slate-300 focus:border-brand-400 transition-colors";
 
 const VITAL_FIELDS: { key: keyof NonNullable<StructuredPrescription["vitals"]>; label: string; step?: string }[] = [
   { key: "bpSystolic", label: "Systolic BP" },
@@ -100,18 +100,18 @@ export function PrescriptionPaper({ value, onChange, favorites, transcript, aiGe
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       {/* Header band */}
-      <div className="flex items-start justify-between gap-4 bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-5 text-white">
+      <div className="flex items-start justify-between gap-4 bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-5 text-white">
         <div>
           <p className="text-lg font-bold leading-tight">Dr. {header?.doctorName ?? "—"}</p>
           {(header?.qualification || header?.degree) && (
-            <p className="text-xs text-indigo-100">{[header?.qualification, header?.degree].filter(Boolean).join(" | ")}</p>
+            <p className="text-xs text-brand-100">{[header?.qualification, header?.degree].filter(Boolean).join(" | ")}</p>
           )}
-          {header?.registrationNo && <p className="text-xs text-indigo-100">Reg: {header.registrationNo}</p>}
+          {header?.registrationNo && <p className="text-xs text-brand-100">Reg: {header.registrationNo}</p>}
         </div>
         <div className="text-right">
           <p className="font-semibold leading-tight">{header?.clinicName ?? "Clinic"}</p>
-          {header?.clinicAddress && <p className="text-xs text-indigo-100">{header.clinicAddress}</p>}
-          {header?.clinicPhone && <p className="text-xs text-indigo-100">Ph: {header.clinicPhone}</p>}
+          {header?.clinicAddress && <p className="text-xs text-brand-100">{header.clinicAddress}</p>}
+          {header?.clinicPhone && <p className="text-xs text-brand-100">Ph: {header.clinicPhone}</p>}
         </div>
       </div>
 
@@ -166,12 +166,12 @@ export function PrescriptionPaper({ value, onChange, favorites, transcript, aiGe
         {/* Rx + medicines */}
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <span className="font-serif text-2xl font-bold text-indigo-700" aria-hidden>℞</span>
+            <span className="font-serif text-2xl font-bold text-brand-700" aria-hidden>℞</span>
             <div className="flex items-center gap-2">
               {favorites && favorites.length > 0 && (
                 <div className="hidden flex-wrap gap-1 sm:flex">
                   {favorites.slice(0, 4).map((f) => (
-                    <button key={f.name} type="button" onClick={() => addFavorite(f)} className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 hover:bg-indigo-100">
+                    <button key={f.name} type="button" onClick={() => addFavorite(f)} className="rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700 hover:bg-brand-100">
                       + {f.name}
                     </button>
                   ))}
@@ -266,7 +266,7 @@ export function PrescriptionPaper({ value, onChange, favorites, transcript, aiGe
           <span className="font-semibold text-slate-500">Advice</span>
           <textarea
             rows={2}
-            className="mt-1 w-full resize-none rounded-md border border-slate-200 bg-transparent px-2 py-1.5 text-slate-800 outline-none focus:border-indigo-400"
+            className="mt-1 w-full resize-none rounded-md border border-slate-200 bg-transparent px-2 py-1.5 text-slate-800 outline-none focus:border-brand-400"
             value={value.advice}
             placeholder="—"
             onChange={(e) => onChange({ ...value, advice: e.target.value })}
@@ -284,7 +284,7 @@ export function PrescriptionPaper({ value, onChange, favorites, transcript, aiGe
                 onClick={() => onChange({ ...value, followUpDays: value.followUpDays === d ? null : d })}
                 className={cn(
                   "rounded-full px-3 py-1 text-xs font-medium transition",
-                  value.followUpDays === d ? "bg-indigo-600 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                  value.followUpDays === d ? "bg-brand-600 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"
                 )}
               >
                 {d}d
@@ -306,7 +306,7 @@ export function PrescriptionPaper({ value, onChange, favorites, transcript, aiGe
                 <input
                   type="number"
                   step={f.step}
-                  className="mt-0.5 w-full rounded-md border border-slate-200 bg-transparent px-2 py-1 text-sm text-slate-800 outline-none focus:border-indigo-400"
+                  className="mt-0.5 w-full rounded-md border border-slate-200 bg-transparent px-2 py-1 text-sm text-slate-800 outline-none focus:border-brand-400"
                   value={value.vitals?.[f.key] ?? ""}
                   onChange={(e) => updateVital(f.key, e.target.value)}
                 />
@@ -323,7 +323,7 @@ export function PrescriptionPaper({ value, onChange, favorites, transcript, aiGe
           </span>
           <textarea
             rows={2}
-            className="mt-1 w-full resize-none rounded-md border border-slate-200 bg-transparent px-2 py-1.5 text-slate-700 outline-none focus:border-indigo-400"
+            className="mt-1 w-full resize-none rounded-md border border-slate-200 bg-transparent px-2 py-1.5 text-slate-700 outline-none focus:border-brand-400"
             value={value.clinicalSummary || ""}
             placeholder="Private summary for your reference…"
             onChange={(e) => onChange({ ...value, clinicalSummary: e.target.value })}

@@ -248,6 +248,14 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
     localStorage.setItem("voice_rx_language", language);
   }, [language]);
 
+  // Auto-scroll to the prescription paper on the false→true edge (per session).
+  useEffect(() => {
+    if (isAiGenerated && !prevAiGeneratedRef.current) {
+      setTimeout(() => prescriptionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+    }
+    prevAiGeneratedRef.current = isAiGenerated;
+  }, [isAiGenerated]);
+
   // Load the doctor's personal medicine shelf (Doctor Memory v1) once on mount.
   useEffect(() => {
     let active = true;
@@ -387,6 +395,10 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
 
   // Use refs for lifecycle-safe async operations
   const activeRef = useRef(true);
+
+  // Auto-scroll to the prescription paper.
+  const prescriptionRef = useRef<HTMLDivElement | null>(null);
+  const prevAiGeneratedRef = useRef(false);
 
   // --- Edit-protection: track which fields the doctor has manually edited so
   // the live AI re-parse never silently overwrites the doctor's corrections. ---
@@ -1096,19 +1108,6 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
         </div>
       </div>
 
-      {/* Consultation language — slim inline control */}
-      <div className="flex items-center gap-2 text-sm text-slate-500">
-        <Globe className="h-4 w-4 text-slate-400" />
-        <span>Language</span>
-        <div className="w-48">
-          <Select value={language} onChange={(e) => setLanguage(e.target.value)} className="h-9 text-sm">
-            {LANGUAGES.map((lang) => (
-              <option key={lang.code} value={lang.code}>{lang.name}</option>
-            ))}
-          </Select>
-        </div>
-      </div>
-
       {recognitionSupported && workflowMode === "dictation" ? (
         <Card className="border-slate-150 bg-white shadow-sm overflow-hidden">
           <CardContent className="p-6 space-y-6">
@@ -1124,7 +1123,7 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
                 onClick={isListening ? stopListening : startListening}
                 className={cn(
                   "flex items-center gap-2 rounded-full px-7 py-6 text-base shadow-sm transition",
-                  isListening ? "bg-red-500 hover:bg-red-600 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                  isListening ? "bg-red-500 hover:bg-red-600 text-white" : "bg-brand-600 hover:bg-brand-700 text-white"
                 )}
               >
                 {isListening ? (
@@ -1181,6 +1180,24 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
                   </Button>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                      <Globe className="h-3.5 w-3.5 text-brand-500" /> Consultation language
+                    </Label>
+                    <Select
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                      className="text-xs"
+                    >
+                      {LANGUAGES.map((lang) => (
+                        <option key={lang.code} value={lang.code}>{lang.name}</option>
+                      ))}
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground leading-normal">
+                      The language you&apos;ll speak in during the consult.
+                    </p>
+                  </div>
+
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold text-slate-600">Microphone Behavior</Label>
                     <Select
@@ -1304,11 +1321,11 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
 
       {/* Structured preview building live on screen (Visible ONLY if AI has structured or in manual typing) */}
       {(workflowMode === "manual" || isAiGenerated) && (
-        <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div ref={prescriptionRef} className="space-y-3 scroll-mt-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-slate-800">Prescription</h2>
             {isAiGenerated && (
-              <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+              <Badge className="bg-brand-50 text-brand-700 border-brand-200">
                 <Sparkles className="mr-1 h-3 w-3" /> AI structured · editable
               </Badge>
             )}

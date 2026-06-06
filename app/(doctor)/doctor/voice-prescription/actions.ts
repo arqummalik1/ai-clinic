@@ -103,26 +103,42 @@ export async function saveAndShipPrescription(args: SaveArgs): Promise<SaveResul
 
   const todayISO = new Date().toISOString().split("T")[0];
 
-  const { data: rxRow, error: rxError } = await supabase
-    .from("prescriptions")
-    .insert({
-      clinic_id: doctor.clinic_id,
-      doctor_id: doctor.id,
-      patient_id: patient.id,
-      appointment_id: args.appointmentId ?? null,
-      diagnosis: args.prescription.diagnosis,
-      chief_complaint: args.prescription.chiefComplaint || null,
-      medicines: args.prescription.medicines,
-      lab_tests: args.prescription.labTests,
-      advice: args.prescription.advice || null,
-      follow_up_days: args.prescription.followUpDays ?? null,
-      is_ai_generated: args.isAiGenerated,
-      raw_voice_text: args.rawVoiceText ?? null,
-      clinical_summary: args.prescription.clinicalSummary || null,
-      transcription_language: args.transcriptionLanguage || "en",
-    })
-    .select("id")
-    .single();
+  // Core columns guaranteed to exist; optional columns were added in later
+  // migrations. If the DB is behind (PostgREST "could not find column"), we
+  // retry with core-only so the doctor can still save. Run migration 0002 to
+  // restore full fidelity (clinical summary, raw voice, language, etc.).
+  const coreRow = {
+    clinic_id: doctor.clinic_id,
+    doctor_id: doctor.id,
+    patient_id: patient.id,
+    appointment_id: args.appointmentId ?? null,
+    diagnosis: args.prescription.diagnosis,
+    medicines: args.prescription.medicines,
+    lab_tests: args.prescription.labTests,
+    advice: args.prescription.advice || null,
+    is_ai_generated: args.isAiGenerated,
+  };
+  const optionalRow = {
+    chief_complaint: args.prescription.chiefComplaint || null,
+    follow_up_days: args.prescription.followUpDays ?? null,
+    raw_voice_text: args.rawVoiceText ?? null,
+    clinical_summary: args.prescription.clinicalSummary || null,
+    transcription_language: args.transcriptionLanguage || "en",
+  };
+
+  let rxRow: { id: string } | null = null;
+  let rxError: { message: string } | null = null;
+  {
+    const res = await supabase.from("prescriptions").insert({ ...coreRow, ...optionalRow }).select("id").single();
+    rxRow = res.data;
+    rxError = res.error;
+    if (rxError && /could not find the .* column|does not exist|schema cache/i.test(rxError.message)) {
+      console.warn("[save] prescriptions table is missing optional columns — saving core fields only. Run supabase/migrations/0002. Detail:", rxError.message);
+      const retry = await supabase.from("prescriptions").insert(coreRow).select("id").single();
+      rxRow = retry.data;
+      rxError = retry.error;
+    }
+  }
   if (rxError || !rxRow) return { error: rxError?.message ?? "Could not save prescription" };
 
   // Auto-record vitals if extracted/present in the prescription data
