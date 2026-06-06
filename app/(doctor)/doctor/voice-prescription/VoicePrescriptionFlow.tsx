@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { VoiceRecorder } from "@/components/voice/VoiceRecorder";
-import { PrescriptionEditor } from "@/components/prescriptions/PrescriptionEditor";
+import { PrescriptionPaper } from "@/components/prescriptions/PrescriptionPaper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,8 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import type { StructuredPrescription, Vitals, Medicine } from "@/lib/ai";
-import { saveAndShipPrescription, getDoctorMedicineFavorites, type FavoriteMedicine } from "./actions";
-import { Save, Mail, AlertTriangle, User, Loader2, Globe, Mic, MicOff, Keyboard, Sparkles, Volume2, Sliders, Clock, FileText, Smartphone } from "lucide-react";
+import { saveAndShipPrescription, getDoctorMedicineFavorites, getPrescriptionHeader, type FavoriteMedicine, type PrescriptionHeaderInfo } from "./actions";
+import { Save, Mail, AlertTriangle, User, Loader2, Globe, Mic, MicOff, Keyboard, Sparkles, Volume2, Sliders, Clock, FileText, Smartphone, Thermometer, HeartPulse, Droplets, Weight, Ruler, Activity, Gauge } from "lucide-react";
 import { ECGVisualizer } from "@/components/voice/ECGVisualizer";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -89,12 +89,30 @@ const LANGUAGES = [
 ];
 
 const DEFAULT_MIC_MODE = "auto-stop";
-const DEFAULT_AI_PAUSE_SEC = 3;
-const DEFAULT_MIC_STOP_SEC = 5;
+const DEFAULT_AI_PAUSE_SEC = 2;
+const DEFAULT_MIC_STOP_SEC = 6;
 
 // Top-level prescription fields that can be individually locked from AI overwrite.
 const FIELD_KEYS: (keyof StructuredPrescription)[] = [
   "diagnosis", "chiefComplaint", "medicines", "labTests", "advice", "followUpDays", "clinicalSummary", "vitals",
+];
+
+// Colour-coded vitals chips (read-at-a-glance, with icons).
+const VITAL_CHIPS: {
+  key: string;
+  label: string;
+  unit: string;
+  icon: typeof Activity;
+  color: string;
+  get: (v?: Vitals) => string | number | null | undefined;
+}[] = [
+  { key: "bp", label: "BP", unit: "mmHg", icon: Activity, color: "bg-rose-50 text-rose-700 border-rose-100", get: (v) => v?.bpSystolic && v?.bpDiastolic ? `${v.bpSystolic}/${v.bpDiastolic}` : null },
+  { key: "temp", label: "Temp", unit: "°F", icon: Thermometer, color: "bg-orange-50 text-orange-700 border-orange-100", get: (v) => v?.temperatureF ?? null },
+  { key: "pulse", label: "Pulse", unit: "bpm", icon: HeartPulse, color: "bg-pink-50 text-pink-700 border-pink-100", get: (v) => v?.pulseRate ?? null },
+  { key: "spo2", label: "SpO₂", unit: "%", icon: Droplets, color: "bg-sky-50 text-sky-700 border-sky-100", get: (v) => v?.spo2 ?? null },
+  { key: "weight", label: "Weight", unit: "kg", icon: Weight, color: "bg-violet-50 text-violet-700 border-violet-100", get: (v) => v?.weightKg ?? null },
+  { key: "height", label: "Height", unit: "cm", icon: Ruler, color: "bg-teal-50 text-teal-700 border-teal-100", get: (v) => v?.heightCm ?? null },
+  { key: "bmi", label: "BMI", unit: "", icon: Gauge, color: "bg-amber-50 text-amber-700 border-amber-100", get: (v) => v?.bmi ?? null },
 ];
 
 const EMPTY_RX: StructuredPrescription = {
@@ -146,6 +164,7 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
   }
   const [lastRxFull, setLastRxFull] = useState<LastRxFull | null>(null);
   const [favorites, setFavorites] = useState<FavoriteMedicine[]>([]);
+  const [headerInfo, setHeaderInfo] = useState<PrescriptionHeaderInfo | null>(null);
   const [rx, setRx] = useState<StructuredPrescription>(EMPTY_RX);
   const [rawVoice, setRawVoice] = useState<string>("");
   const [isAiGenerated, setIsAiGenerated] = useState(false);
@@ -235,6 +254,9 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
     getDoctorMedicineFavorites()
       .then((favs) => { if (active) setFavorites(favs); })
       .catch(() => { /* non-fatal: editor just won't show favorites */ });
+    getPrescriptionHeader()
+      .then((h) => { if (active) setHeaderInfo(h); })
+      .catch(() => { /* non-fatal: paper header falls back to placeholders */ });
     return () => { active = false; };
   }, []);
 
@@ -359,6 +381,7 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
   // Refs for SpeechRecognition & debouncing
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const parseSpeechRef = useRef<string>("");
+  const finalTranscriptRef = useRef<string>("");
   const parseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoStopTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -497,49 +520,48 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
       setIsListening(true);
       setVisualizerStep("recording");
       setVisualizerError(null);
-      toast.success("Voice dictation active. Start speaking...");
 
       // Start initial silence timeout if auto-stop is active
       if (autoStopTimeoutRef.current) clearTimeout(autoStopTimeoutRef.current);
       if (micModeRef.current === "auto-stop") {
         autoStopTimeoutRef.current = setTimeout(() => {
           rec.stop();
-          toast.info("Microphone auto-paused due to inactivity.");
         }, micAutoStopDurationRef.current * 1000);
       }
     };
 
     rec.onresult = (event: SpeechRecognitionEvent) => {
-      let finalTranscript = "";
       let interimTranscript = "";
 
+      // Append newly-finalized chunks to the running transcript; keep interim
+      // separate so the live display updates but isn't double-counted.
       for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
+        const res = event.results[i];
+        if (res.isFinal) {
+          finalTranscriptRef.current += res[0].transcript + " ";
         } else {
-          interimTranscript += event.results[i][0].transcript;
+          interimTranscript += res[0].transcript;
         }
       }
 
-      const combined = (finalTranscript || interimTranscript).trim();
-      if (combined) {
-        setLiveTranscript(combined);
-        setRawVoice(combined);
+      const full = (finalTranscriptRef.current + interimTranscript).trim();
+      if (full) {
+        setLiveTranscript(full);
+        setRawVoice(full);
 
         // Reset the auto-stop timer
         if (autoStopTimeoutRef.current) clearTimeout(autoStopTimeoutRef.current);
         if (micModeRef.current === "auto-stop") {
           autoStopTimeoutRef.current = setTimeout(() => {
             rec.stop();
-            toast.info("Microphone auto-paused due to inactivity.");
           }, micAutoStopDurationRef.current * 1000);
         }
 
-        // Debounce AI structured prescription parsing based on configured trigger delay
+        // Debounce AI structuring on a natural pause.
         if (parseTimeoutRef.current) clearTimeout(parseTimeoutRef.current);
         parseTimeoutRef.current = setTimeout(() => {
-          if (combined !== parseSpeechRef.current) {
-            triggerLiveParsing(combined);
+          if (full !== parseSpeechRef.current) {
+            triggerLiveParsing(full);
           }
         }, aiPauseDurationRef.current * 1000);
       }
@@ -547,16 +569,16 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
 
     rec.onerror = (e: SpeechRecognitionErrorEvent) => {
       console.error("[SpeechRecognition Error]:", e.error, e.message);
-      setVisualizerStep("error");
-      setVisualizerError(e.message || e.error);
       if (e.error === "not-allowed") {
-        toast.error("Microphone access denied. Please check site permissions.");
+        setVisualizerStep("error");
+        setVisualizerError("Microphone access denied. Allow mic permission and try again.");
+        toast.error("Microphone access denied. Please allow mic permission.");
       }
+      // "no-speech"/"aborted" are benign — onend will handle structuring.
     };
 
     rec.onend = () => {
       setIsListening(false);
-      setVisualizerStep(prev => prev === "recording" ? "idle" : prev);
       if (autoStopTimeoutRef.current) {
         clearTimeout(autoStopTimeoutRef.current);
         autoStopTimeoutRef.current = null;
@@ -564,6 +586,14 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
       if (parseTimeoutRef.current) {
         clearTimeout(parseTimeoutRef.current);
         parseTimeoutRef.current = null;
+      }
+      // Structure whatever was said the moment recording stops — so the doctor
+      // never has to wait for (or lose) a pending debounce.
+      const full = finalTranscriptRef.current.trim();
+      if (full && full !== parseSpeechRef.current) {
+        triggerLiveParsing(full);
+      } else {
+        setVisualizerStep(prev => (prev === "recording" ? "idle" : prev));
       }
     };
 
@@ -577,7 +607,11 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
   }, [language, getLangLocale, triggerLiveParsing]);
 
   const loadPatientData = useCallback(async (pid: string, aptId?: string) => {
-    
+    // Fresh transcript for each patient.
+    finalTranscriptRef.current = "";
+    parseSpeechRef.current = "";
+    setLiveTranscript("");
+    setRawVoice("");
     const { data: p, error: pError } = await supabase
       .from("patients")
       .select("id, full_name, age, gender, allergies, email, phone")
@@ -964,159 +998,116 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-4xl space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
-            <Mic className="h-6 w-6 text-red-500 animate-pulse" /> Live voice prescription
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">Dictate diagnosis, vitals, medicines, tests naturally. AI structures it in real time.</p>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">Voice prescription</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Just speak — diagnosis, medicines, advice. It writes itself.</p>
         </div>
-        <div className="flex gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-          <Button
-            size="sm"
-            variant={workflowMode === "dictation" ? "default" : "ghost"}
-            onClick={() => {
-              setWorkflowMode("dictation");
-              toast.info("Switching to Voice Dictation Mode. Browser Web Speech active.");
-            }}
-            className="rounded-lg text-xs"
+        <div className="inline-flex rounded-full bg-slate-100 p-1">
+          <button
+            onClick={() => setWorkflowMode("dictation")}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium transition",
+              workflowMode === "dictation" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            )}
           >
-            <Mic className="mr-1.5 h-3.5 w-3.5" /> Dictation
-          </Button>
-          <Button
-            size="sm"
-            variant={workflowMode === "manual" ? "default" : "ghost"}
-            onClick={() => {
-              setWorkflowMode("manual");
-              stopListening();
-              toast.info("Switching to Manual Entry Mode. Microphone turned off.");
-            }}
-            className="rounded-lg text-xs"
+            <Mic className="h-3.5 w-3.5" /> Speak
+          </button>
+          <button
+            onClick={() => { setWorkflowMode("manual"); stopListening(); }}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium transition",
+              workflowMode === "manual" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            )}
           >
-            <Keyboard className="mr-1.5 h-3.5 w-3.5" /> Manual typing
-          </Button>
+            <Keyboard className="h-3.5 w-3.5" /> Type
+          </button>
         </div>
       </div>
 
-      <Card className="border-slate-100 shadow-sm overflow-hidden bg-gradient-to-r from-slate-50 to-white">
-        <CardContent className="p-6 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <User className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-bold text-slate-800 text-lg">{patient.full_name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Age {patient.age ?? "—"} · {patient.gender ?? "—"} · {patient.phone ?? "no phone"}
-                </p>
-              </div>
+      {/* Patient + vitals */}
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <User className="h-5 w-5" />
             </div>
-            
-            <div className="flex items-center gap-2 flex-wrap">
-              {patient.allergies && patient.allergies.length > 0 && (
-                <div className="flex items-center gap-2 rounded-lg bg-yellow-50 px-3 py-1.5 text-xs text-yellow-850 border border-yellow-100">
-                  <AlertTriangle className="h-3.5 w-3.5 text-yellow-650" />
-                  Allergies: {patient.allergies.join(", ")}
-                </div>
-              )}
-              {lastDx && (
-                <div className="text-xs text-slate-500 font-medium bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-                  Last visit: {lastDx}
-                </div>
-              )}
-              {lastRxFull && lastRxFull.medicines.length > 0 && (
-                <Button
-                  size="sm"
-                  onClick={repeatLastPrescription}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm rounded-lg"
-                  title={`Repeat: ${lastRxFull.medicines.map(m => m.name).filter(Boolean).join(", ")}`}
-                >
-                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                  Repeat last Rx
-                </Button>
-              )}
+            <div>
+              <p className="font-semibold text-slate-900">{patient.full_name}</p>
+              <p className="text-xs text-slate-500">
+                Age {patient.age ?? "—"} · {patient.gender ?? "—"}{patient.phone ? ` · ${patient.phone}` : ""}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {lastRxFull && lastRxFull.medicines.length > 0 && (
               <Button
-                variant="outline"
                 size="sm"
-                onClick={() => setHistoryOpen(true)}
-                className="bg-white border-slate-200 hover:bg-slate-50 shadow-sm rounded-lg"
+                variant="outline"
+                onClick={repeatLastPrescription}
+                className="rounded-full"
+                title={`Repeat: ${lastRxFull.medicines.map(m => m.name).filter(Boolean).join(", ")}`}
               >
-                <FileText className="mr-1.5 h-3.5 w-3.5 text-indigo-500" />
-                View Medical History
+                <Sparkles className="mr-1.5 h-3.5 w-3.5 text-emerald-600" /> Repeat last Rx
               </Button>
-            </div>
+            )}
+            <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)} className="rounded-full">
+              <FileText className="mr-1.5 h-3.5 w-3.5 text-indigo-500" /> History
+            </Button>
           </div>
+        </div>
 
-          {/* Vitals Grid Dashboard */}
-          <div>
-            <h3 className="text-xs font-semibold text-slate-450 uppercase tracking-wider mb-2.5">Recorded Patient Vitals</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
-              <div className="rounded-xl border border-slate-150 bg-white p-3 shadow-xs flex flex-col items-center justify-center text-center">
-                <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Blood Pressure</span>
-                <span className="text-sm font-semibold text-slate-700 mt-1">
-                  {rx.vitals?.bpSystolic && rx.vitals?.bpDiastolic ? `${rx.vitals.bpSystolic}/${rx.vitals.bpDiastolic}` : "—"} <span className="text-[10px] font-normal text-slate-400">mmHg</span>
-                </span>
-              </div>
-              <div className="rounded-xl border border-slate-150 bg-white p-3 shadow-xs flex flex-col items-center justify-center text-center">
-                <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Temperature</span>
-                <span className="text-sm font-semibold text-slate-700 mt-1">
-                  {rx.vitals?.temperatureF ? `${rx.vitals.temperatureF}°F` : "—"}
-                </span>
-              </div>
-              <div className="rounded-xl border border-slate-150 bg-white p-3 shadow-xs flex flex-col items-center justify-center text-center">
-                <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Pulse Rate</span>
-                <span className="text-sm font-semibold text-slate-700 mt-1">
-                  {rx.vitals?.pulseRate ? `${rx.vitals.pulseRate} bpm` : "—"}
-                </span>
-              </div>
-              <div className="rounded-xl border border-slate-150 bg-white p-3 shadow-xs flex flex-col items-center justify-center text-center">
-                <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Oxygen (SpO₂)</span>
-                <span className="text-sm font-semibold text-slate-700 mt-1">
-                  {rx.vitals?.spo2 ? `${rx.vitals.spo2}%` : "—"}
-                </span>
-              </div>
-              <div className="rounded-xl border border-slate-150 bg-white p-3 shadow-xs flex flex-col items-center justify-center text-center">
-                <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Weight</span>
-                <span className="text-sm font-semibold text-slate-700 mt-1">
-                  {rx.vitals?.weightKg ? `${rx.vitals.weightKg} kg` : "—"}
-                </span>
-              </div>
-              <div className="rounded-xl border border-slate-150 bg-white p-3 shadow-xs flex flex-col items-center justify-center text-center">
-                <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Height</span>
-                <span className="text-sm font-semibold text-slate-700 mt-1">
-                  {rx.vitals?.heightCm ? `${rx.vitals.heightCm} cm` : "—"}
-                </span>
-              </div>
-              <div className="rounded-xl border border-slate-150 bg-white p-3 shadow-xs flex flex-col items-center justify-center text-center">
-                <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">BMI</span>
-                <span className="text-sm font-semibold text-slate-700 mt-1">
-                  {rx.vitals?.bmi ? rx.vitals.bmi : "—"}
-                </span>
-              </div>
-            </div>
+        {((patient.allergies && patient.allergies.length > 0) || lastDx) && (
+          <div className="flex flex-wrap gap-2 text-xs">
+            {patient.allergies && patient.allergies.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 font-medium text-amber-700">
+                <AlertTriangle className="h-3.5 w-3.5" /> Allergies: {patient.allergies.join(", ")}
+              </span>
+            )}
+            {lastDx && (
+              <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1.5 font-medium text-slate-600">
+                Last visit: {lastDx}
+              </span>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        )}
 
-      <Card className="border-slate-150 bg-slate-50/50 shadow-sm">
-        <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <Globe className="h-4 w-4 text-indigo-500" />
-            <span>Consultation Language</span>
-          </div>
-          <div className="w-56">
-            <Select value={language} onChange={(e) => setLanguage(e.target.value)}>
-              {LANGUAGES.map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.name}
-                </option>
-              ))}
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Vitals — colour-coded chips with icons */}
+        <div className="flex flex-wrap gap-2">
+          {VITAL_CHIPS.map((vc) => {
+            const Icon = vc.icon;
+            const val = vc.get(rx.vitals);
+            const has = val !== null && val !== undefined && val !== "";
+            return (
+              <span
+                key={vc.key}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium",
+                  has ? vc.color : "border-slate-150 bg-slate-50 text-slate-400"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {vc.label}
+                <span className="font-semibold">{has ? `${val}${vc.unit ? ` ${vc.unit}` : ""}` : "—"}</span>
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Consultation language — slim inline control */}
+      <div className="flex items-center gap-2 text-sm text-slate-500">
+        <Globe className="h-4 w-4 text-slate-400" />
+        <span>Language</span>
+        <div className="w-48">
+          <Select value={language} onChange={(e) => setLanguage(e.target.value)} className="h-9 text-sm">
+            {LANGUAGES.map((lang) => (
+              <option key={lang.code} value={lang.code}>{lang.name}</option>
+            ))}
+          </Select>
+        </div>
+      </div>
 
       {recognitionSupported && workflowMode === "dictation" ? (
         <Card className="border-slate-150 bg-white shadow-sm overflow-hidden">
@@ -1128,50 +1119,45 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
               errorMsg={visualizerError}
             />
 
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="flex gap-2">
-                <Button
-                  onClick={isListening ? stopListening : startListening}
-                  className={cn(
-                    "rounded-xl shadow-sm px-6 py-2 flex items-center gap-2",
-                    isListening ? "bg-red-500 hover:bg-red-655 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"
-                  )}
-                >
-                  {isListening ? (
-                    <>
-                      <MicOff className="h-4 w-4" /> Pause dictation
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="h-4 w-4" /> Start dictating
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowSettings(!showSettings)}
-                  className="rounded-xl px-4 py-2 flex items-center gap-2 border-slate-200 hover:bg-slate-50 text-slate-700"
-                >
-                  <Sliders className="h-4 w-4 text-slate-500" />
-                  Settings
-                </Button>
-                {visualizerStep === "error" && (
-                  <Button variant="ghost" onClick={() => {
-                    setVisualizerStep("idle");
-                    setVisualizerError(null);
-                  }}>
-                    Reset
-                  </Button>
+            <div className="flex flex-col items-center justify-center gap-4 text-center">
+              <Button
+                onClick={isListening ? stopListening : startListening}
+                className={cn(
+                  "flex items-center gap-2 rounded-full px-7 py-6 text-base shadow-sm transition",
+                  isListening ? "bg-red-500 hover:bg-red-600 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"
                 )}
-              </div>
+              >
+                {isListening ? (
+                  <><MicOff className="h-5 w-5" /> Stop</>
+                ) : (
+                  <><Mic className="h-5 w-5" /> Tap to speak</>
+                )}
+              </Button>
 
-              <div className="space-y-1">
-                <p className="text-xs text-slate-450 max-w-sm">
-                  {isListening 
-                    ? "Speak complaints, diagnosis, vitals, medicines, advice. Pause to auto-update." 
-                    : "Tap the button above to start dictating."}
-                </p>
-              </div>
+              <p className="min-h-5 text-sm font-medium text-slate-600">
+                {isParsingLive
+                  ? "Building prescription…"
+                  : isListening
+                    ? "Listening… speak naturally, then tap Stop"
+                    : isAiGenerated
+                      ? "Updated below — tap to add more"
+                      : "Tap, then say the diagnosis, medicines and advice"}
+              </p>
+
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600"
+              >
+                <Sliders className="h-3.5 w-3.5" /> Dictation settings
+              </button>
+              {visualizerStep === "error" && (
+                <Button variant="ghost" size="sm" onClick={() => {
+                  setVisualizerStep("idle");
+                  setVisualizerError(null);
+                }}>
+                  Reset
+                </Button>
+              )}
             </div>
 
             {showSettings && (
@@ -1318,24 +1304,26 @@ export function VoicePrescriptionFlow({ patientId: initialPatientId, appointment
 
       {/* Structured preview building live on screen (Visible ONLY if AI has structured or in manual typing) */}
       {(workflowMode === "manual" || isAiGenerated) && (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-850 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-purple-500 animate-spin" /> 
-              Prescription details
-            </h2>
+            <h2 className="text-base font-semibold text-slate-800">Prescription</h2>
             {isAiGenerated && (
-              <Badge className="bg-purple-100 text-purple-800 border-purple-200">AI Structured</Badge>
+              <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+                <Sparkles className="mr-1 h-3 w-3" /> AI structured · editable
+              </Badge>
             )}
           </div>
-          
-          <PrescriptionEditor
+
+          <PrescriptionPaper
             value={rx}
             onChange={handleEditorChange}
             favorites={favorites}
             transcript={rawVoice}
             aiGenerated={isAiGenerated}
             editedFields={editedFields}
+            header={headerInfo}
+            patient={{ name: patient.full_name, age: patient.age, gender: patient.gender, allergies: patient.allergies }}
+            date={new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
           />
 
           {!patient.email && (

@@ -378,3 +378,44 @@ export async function getDoctorMedicineFavorites(limit = 24): Promise<FavoriteMe
   favorites.sort((a, b) => b.count - a.count);
   return favorites.slice(0, limit);
 }
+
+export interface PrescriptionHeaderInfo {
+  doctorName: string;
+  qualification: string | null;
+  degree: string | null;
+  registrationNo: string | null;
+  clinicName: string;
+  clinicAddress: string | null;
+  clinicPhone: string | null;
+}
+
+/** Header/footer details for the on-screen prescription paper (matches the PDF). */
+export async function getPrescriptionHeader(): Promise<PrescriptionHeaderInfo | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: doctor } = await supabase
+    .from("users")
+    .select("full_name, clinics(name, address, phone), doctor_profiles(qualification, degree, registration_no)")
+    .eq("id", user.id)
+    .single();
+  if (!doctor) return null;
+
+  type ClinicEmbed = { name?: string; address?: string | null; phone?: string | null };
+  type DocProfileEmbed = { qualification?: string | null; degree?: string | null; registration_no?: string | null };
+  const clinic = (doctor as unknown as { clinics?: ClinicEmbed | ClinicEmbed[] | null }).clinics;
+  const clinicData = Array.isArray(clinic) ? clinic[0] : clinic ?? undefined;
+  const dp = (doctor as unknown as { doctor_profiles?: DocProfileEmbed | DocProfileEmbed[] | null }).doctor_profiles;
+  const dpData = Array.isArray(dp) ? dp[0] : dp ?? undefined;
+
+  return {
+    doctorName: (doctor as unknown as { full_name: string }).full_name,
+    qualification: dpData?.qualification ?? null,
+    degree: dpData?.degree ?? null,
+    registrationNo: dpData?.registration_no ?? null,
+    clinicName: clinicData?.name ?? "Clinic",
+    clinicAddress: clinicData?.address ?? null,
+    clinicPhone: clinicData?.phone ?? null,
+  };
+}
